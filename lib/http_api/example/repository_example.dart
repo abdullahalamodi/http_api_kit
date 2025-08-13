@@ -1,10 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http_api_kit/async_widgets_kit/async_widgets_kit.dart';
 import 'package:http_api_kit/http_api/http_api.dart';
-import 'package:http_api_kit/http_api/providers/http_api_provider.dart';
+import 'package:http_interceptor/http_interceptor.dart';
 
 final repoExampleProvider = Provider<RepositotyExample>((ref) {
   return RepositotyExample(ref: ref);
+});
+
+final httpApiProvider = Provider.autoDispose<HttpApiInterface>((ref) {
+  final httpCLient = InterceptedClient.build(interceptors: []);
+  final httpApiConfig = HttpApiConfig(
+    baseUrl: 'YOUR_BASE_URL',
+    locale: 'en',
+    apiAccessKey: 'YOUR_API_ACCESS_KEY',
+    token: 'YOUR_TOKEN',
+  );
+  return HttpApi(
+    httpClient: httpCLient,
+    config: httpApiConfig,
+  );
 });
 
 class RepositotyExample {
