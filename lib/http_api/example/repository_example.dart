@@ -1,0 +1,47 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:http_api_kit/async_widgets_kit/async_widgets_kit.dart';
+import 'package:http_api_kit/http_api/http_api.dart';
+import 'package:http_api_kit/http_api/providers/http_api_provider.dart';
+
+final repoExampleProvider = Provider<RepositotyExample>((ref) {
+  return RepositotyExample(ref: ref);
+});
+
+class RepositotyExample {
+  final Ref ref;
+
+  RepositotyExample({required this.ref});
+
+  Future<ResponseModelInterface> postItem() async {
+    final response =
+        await ref.read(httpApiProvider).post<ResponseModelInterface>(
+              endPoint: 'YOUR_END_POINT',
+              body: {'name': 'item1'},
+              dataMapper: (data) => data,
+            );
+    return response;
+  }
+
+  Future<String> getItem() async {
+    final item = await ref.read(httpApiProvider).getItem<String>(
+          endPoint: 'YOUR_END_POINT',
+          dataMapper: (data) => data.data as String,
+        );
+    return item;
+  }
+
+  Future<PaginatedDataModel<String>> getList() async {
+    final items = await ref.read(httpApiProvider).getList(
+          endPoint: 'YOUR_END_POINT',
+          // you can here extaract data.responskey [cities, users, ...etc]
+          // and paginaton key
+          dataMapper: (response) {
+            return PaginatedDataModel(
+              data: response.data['data_response_key'] as List<String>,
+              pagination: response.data['pagination_response_key'],
+            );
+          },
+        );
+    return items;
+  }
+}
