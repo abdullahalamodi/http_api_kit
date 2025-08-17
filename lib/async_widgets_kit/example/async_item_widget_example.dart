@@ -18,7 +18,7 @@ class _AsyncItemWidgetExampleState extends State<AsyncItemWidgetExample> {
         AsyncItemWidget(
           asyncData: _stateModel,
           dataBuilder: (data) {
-            return Text(data);
+            return Text(data ?? '');
           },
           onRetry: () {
             _fitechData();

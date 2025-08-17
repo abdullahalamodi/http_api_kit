@@ -2,9 +2,10 @@
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:http_api_kit/http_api/core/talker_http_api_logger.dart';
 import 'package:http_interceptor/http_interceptor.dart';
 import 'package:talker_flutter/talker_flutter.dart';
+
+import 'talker_http_api_logger.dart';
 
 const _enableTagLogger = true;
 const _enableHttpLogger = true;

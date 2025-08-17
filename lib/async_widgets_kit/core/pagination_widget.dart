@@ -70,11 +70,11 @@ class _PaginationWidgetState extends State<PaginationWidget> {
                 ),
                 child: Text(
                   '${pagesList[i]}',
-                  style: context.textTheme.bodyMedium!.copyWith(
-                    color: pagesList[i] == _currentPage
-                        ? Colors.orange
-                        : Colors.grey,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                        color: pagesList[i] == _currentPage
+                            ? Colors.orange
+                            : Colors.grey,
+                      ),
                 ),
               ),
             ),

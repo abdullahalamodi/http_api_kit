@@ -27,7 +27,7 @@ class SimpleErrorWidget extends StatelessWidget {
             const SizedBox(height: 12),
             TextButton(
               onPressed: onRetry,
-              child: const Text('Try Again!'),
+              child: const Text('حاول مرة أخرى!'),
             ),
           ],
         ),

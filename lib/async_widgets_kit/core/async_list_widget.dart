@@ -1,6 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
-import 'package:http_api_kit/async_widgets_kit/async_widgets_kit.dart';
+
+import '../async_widgets_kit.dart';
 
 class AsyncListWidget<T> extends StatelessWidget {
   const AsyncListWidget({
@@ -9,12 +10,14 @@ class AsyncListWidget<T> extends StatelessWidget {
     required this.onRetry,
     required this.onPageChanged,
     required this.dataBuilder,
+    this.emptyWidgetBuilder,
   });
 
   final BaseStateModel<PaginatedDataModel<T>?> asyncData;
   final VoidCallback onRetry;
   final void Function(int page)? onPageChanged;
   final Widget Function(List<T> data) dataBuilder;
+  final Widget Function(BuildContext context)? emptyWidgetBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -29,18 +32,21 @@ class AsyncListWidget<T> extends StatelessWidget {
             onRetry: () => onRetry(),
           );
         },
-        emptyBuilder: () {
-          return const SimpleEmptyWidget();
-        },
         dataBuilder: (dataModel) {
+          if (dataModel?.data == null || dataModel!.data.isEmpty) {
+            if (emptyWidgetBuilder != null) {
+              return emptyWidgetBuilder!(context);
+            }
+            return const SimpleEmptyWidget();
+          }
+
           return Column(
             children: [
-              dataBuilder(dataModel!.data),
-              if (onPageChanged != null)
-                PaginationWidget(
-                  pagination: dataModel.pagination,
-                  onChangePage: onPageChanged!,
-                ),
+              dataBuilder(dataModel.data),
+              PaginationWidget(
+                pagination: dataModel.pagination,
+                onChangePage: onPageChanged!,
+              ),
             ],
           );
         });

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:http_api_kit/http_api/core/custom_logger.dart';
 import 'package:http_interceptor/http_interceptor.dart';
 
 import '../http_api.dart';
@@ -81,10 +80,11 @@ class HttpApi implements HttpApiInterface {
       /// log response
       CustomLogger.responseLogger(response);
 
-      return _handleResponse(
+      final data = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
       );
+      return data;
     } catch (e, s) {
       _logError(e, s);
       throw _switchError(e);
@@ -110,10 +110,11 @@ class HttpApi implements HttpApiInterface {
       /// log response
       CustomLogger.responseLogger(response);
 
-      return _handleResponse(
+      final data = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
       );
+      return data;
     } catch (e, s) {
       _logError(e, s);
       throw _switchError(e);
@@ -143,10 +144,11 @@ class HttpApi implements HttpApiInterface {
       /// log response
       CustomLogger.responseLogger(response);
 
-      return _handleResponse(
+      final data = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
       );
+      return data;
     } catch (e, s) {
       _logError(e, s);
       throw _switchError(e);
@@ -176,10 +178,11 @@ class HttpApi implements HttpApiInterface {
       /// log response
       CustomLogger.responseLogger(response);
 
-      return _handleResponse(
+      final data = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
       );
+      return data;
     } catch (e, s) {
       _logError(e, s);
       throw _switchError(e);
@@ -242,10 +245,11 @@ class HttpApi implements HttpApiInterface {
       /// log response
       CustomLogger.responseLogger(response);
 
-      return _handleResponse(
+      final data = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
       );
+      return data;
     } catch (e, s) {
       _logError(e, s);
       throw _switchError(e);
@@ -291,10 +295,11 @@ class HttpApi implements HttpApiInterface {
       /// log response
       CustomLogger.responseLogger(response);
 
-      return _handleResponse(
+      final data = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
       );
+      return data;
     } catch (e, s) {
       _logError(e, s);
       throw _switchError(e);

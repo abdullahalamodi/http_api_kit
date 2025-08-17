@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
-import 'package:http_api_kit/async_widgets_kit/async_widgets_kit.dart';
+
+import '../async_widgets_kit.dart';
 
 class AsyncListWidgetExample extends StatelessWidget {
   const AsyncListWidgetExample({super.key});

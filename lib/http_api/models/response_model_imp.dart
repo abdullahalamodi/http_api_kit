@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:http_api_kit/http_api/models/response_model_interface.dart';
+
+import 'response_model_interface.dart';
 
 class ResponseModelImp implements ResponseModelInterface {
   @override

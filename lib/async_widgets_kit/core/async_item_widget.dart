@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:http_api_kit/async_widgets_kit/async_widgets_kit.dart';
+
+import '../async_widgets_kit.dart';
 
 class AsyncItemWidget<T> extends StatelessWidget {
   const AsyncItemWidget({
@@ -10,7 +11,7 @@ class AsyncItemWidget<T> extends StatelessWidget {
   });
 
   final ItemStateModel<T> asyncData;
-  final Widget Function(T data) dataBuilder;
+  final Widget Function(T? data) dataBuilder;
   final VoidCallback onRetry;
 
   @override
@@ -26,10 +27,7 @@ class AsyncItemWidget<T> extends StatelessWidget {
           onRetry: () => onRetry(),
         );
       },
-      emptyBuilder: () {
-        return const SimpleEmptyWidget();
-      },
-      dataBuilder: (data) => dataBuilder(data as T),
+      dataBuilder: (data) => dataBuilder(data),
     );
   }
 }

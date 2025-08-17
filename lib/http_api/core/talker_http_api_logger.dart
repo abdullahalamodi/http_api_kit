@@ -16,13 +16,13 @@ class TalkerHttpApiLogger {
   void logRequest({
     required HttpRequestLog requestLog,
   }) {
-    _talker.logTyped(requestLog);
+    _talker.logCustom(requestLog);
   }
 
   void logResponse({
     required HttpResponseLog responseLog,
   }) {
-    _talker.logTyped(responseLog);
+    _talker.logCustom(responseLog);
   }
 }
 
@@ -61,7 +61,8 @@ class HttpRequestLog extends TalkerLog {
       final prettyBody = encoder.convert(body);
       msg += '\nBody: $prettyBody';
     } catch (_) {
-      // TODO: add handling can`t convert
+      msg += '\nError Pasrse Body: ';
+      msg += '\nRow body: ${body.toString()}';
     }
     return msg;
   }
@@ -99,6 +100,7 @@ class HttpResponseLog extends TalkerLog {
       msg += '\nBody: $prettyBody';
     } catch (_) {
       msg += '\nError Pasrse Body: ';
+      msg += '\nTry to print row body: $body';
     }
     return msg;
   }

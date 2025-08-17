@@ -8,10 +8,16 @@ class SimpleLoadingWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Padding(
-      padding: EdgeInsets.all(20),
-      child: Text(
-        'Loading ...',
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Center(
+        child: Text(
+          'جاري التحميل ...',
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 16,
+          ),
+        ),
       ),
     );
   }
