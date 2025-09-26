@@ -271,7 +271,7 @@ class HttpApi implements HttpApiInterface {
       /// log request
       CustomLogger.requestLogger(
         uri: uri,
-        method: 'multipart',
+        method: method,
         headers: headers,
         body: fields,
         files: files,

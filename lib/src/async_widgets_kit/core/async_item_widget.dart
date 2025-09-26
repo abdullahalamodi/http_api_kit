@@ -8,11 +8,13 @@ class AsyncItemWidget<T> extends StatelessWidget {
     required this.asyncData,
     required this.dataBuilder,
     required this.onRetry,
+    this.emptyWidgetBuilder,
   });
 
   final ItemStateModel<T> asyncData;
-  final Widget Function(T? data) dataBuilder;
   final VoidCallback onRetry;
+  final Widget Function(BuildContext context)? emptyWidgetBuilder;
+  final Widget Function(T? data) dataBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +29,15 @@ class AsyncItemWidget<T> extends StatelessWidget {
           onRetry: () => onRetry(),
         );
       },
-      dataBuilder: (data) => dataBuilder(data),
+      dataBuilder: (data) {
+        if (data == null) {
+          if (emptyWidgetBuilder != null) {
+            return emptyWidgetBuilder!(context);
+          }
+          return const SimpleEmptyWidget();
+        }
+        return dataBuilder(data);
+      },
     );
   }
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:http_api_kit/async_widgets_kit/async_widgets_kit.dart';
+import '../async_widgets_kit.dart';
 
 class AsyncItemWidgetExample extends StatefulWidget {
   const AsyncItemWidgetExample({super.key});

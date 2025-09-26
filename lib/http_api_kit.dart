@@ -8,6 +8,6 @@
 library;
 
 // Async Widgets Kit exports
-export 'async_widgets_kit/async_widgets_kit.dart';
+export 'src/async_widgets_kit/async_widgets_kit.dart';
 // HTTP API exports
-export 'http_api/http_api.dart';
+export 'src/http_api/http_api.dart';
