@@ -11,6 +11,8 @@ class AsyncListWidget<T> extends StatelessWidget {
     required this.onPageChanged,
     required this.dataBuilder,
     this.emptyWidgetBuilder,
+    this.loadingWidgetBuilder,
+    this.errorWidgetBuilder,
   });
 
   final BaseStateModel<PaginatedDataModel<T>?> asyncData;
@@ -18,20 +20,19 @@ class AsyncListWidget<T> extends StatelessWidget {
   final void Function(int page)? onPageChanged;
   final Widget Function(List<T> data) dataBuilder;
   final Widget Function(BuildContext context)? emptyWidgetBuilder;
+  final Widget Function()? loadingWidgetBuilder;
+  final Widget Function(String error)? errorWidgetBuilder;
 
   @override
   Widget build(BuildContext context) {
     return AsyncWidget(
       asyncData: asyncData,
-      loadingBuilder: () {
-        return const SimpleLoadingWidget();
-      },
-      errorBuilder: (error) {
-        return SimpleErrorWidget(
-          error: error,
-          onRetry: () => onRetry(),
-        );
-      },
+      loadingBuilder: loadingWidgetBuilder ?? () => const SimpleLoadingWidget(),
+      errorBuilder: errorWidgetBuilder ??
+          (error) => SimpleErrorWidget(
+                error: error,
+                onRetry: () => onRetry(),
+              ),
       dataBuilder: (dataModel) {
         if (dataModel?.data == null || dataModel!.data.isEmpty) {
           if (emptyWidgetBuilder != null) {
