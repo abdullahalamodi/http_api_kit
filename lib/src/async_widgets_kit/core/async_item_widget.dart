@@ -9,26 +9,27 @@ class AsyncItemWidget<T> extends StatelessWidget {
     required this.dataBuilder,
     required this.onRetry,
     this.emptyWidgetBuilder,
+    this.loadingWidgetBuilder,
+    this.errorWidgetBuilder,
   });
 
   final ItemStateModel<T> asyncData;
   final VoidCallback onRetry;
   final Widget Function(BuildContext context)? emptyWidgetBuilder;
   final Widget Function(T? data) dataBuilder;
+  final Widget Function()? loadingWidgetBuilder;
+  final Widget Function(String error)? errorWidgetBuilder;
 
   @override
   Widget build(BuildContext context) {
     return AsyncWidget(
       asyncData: asyncData,
-      loadingBuilder: () {
-        return const SimpleLoadingWidget();
-      },
-      errorBuilder: (error) {
-        return SimpleErrorWidget(
-          error: error,
-          onRetry: () => onRetry(),
-        );
-      },
+      loadingBuilder: loadingWidgetBuilder ?? () => const SimpleLoadingWidget(),
+      errorBuilder: errorWidgetBuilder ??
+          (error) => SimpleErrorWidget(
+                error: error,
+                onRetry: () => onRetry(),
+              ),
       dataBuilder: (data) {
         if (data == null) {
           if (emptyWidgetBuilder != null) {
