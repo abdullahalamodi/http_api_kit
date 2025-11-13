@@ -58,6 +58,7 @@ class HttpApi implements HttpApiInterface {
     } else {
       throw ServerException(
         responseModel.message ?? messages.unKnownServerMessage,
+        statusCode: response.statusCode,
       );
     }
   }

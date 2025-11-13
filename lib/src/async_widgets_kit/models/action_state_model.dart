@@ -5,10 +5,11 @@ import '../../http_api/http_api.dart';
 abstract interface class ActionStateModel<T> {
   ActionStateModel();
 
-  static init() => _Init();
+  static init<T>() => _Init<T>();
   static success<T>({T? data, ActionType action = ActionType.none}) =>
       _Success<T>(data: data, action: action);
-  static exception(HttpApiException exception) => _Error(exception: exception);
+  static exception<T>(HttpApiException exception) =>
+      _Error<T>(exception: exception);
 
   R when<R>({
     required R Function() init,
@@ -74,6 +75,10 @@ enum ActionType {
   edit,
   delete,
   download,
+  confirm,
+  cancel,
+  init,
+  marked,
   none;
 
   bool get isAdd => this == add;
