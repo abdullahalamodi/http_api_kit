@@ -23,7 +23,7 @@ class AsyncWidget<T> extends StatelessWidget {
     } else if (asyncData.error != null) {
       return errorBuilder.call(asyncData.error!);
     } else {
-      return dataBuilder.call(asyncData.dataModel!);
+      return dataBuilder.call(asyncData.dataModel);
     }
   }
 }

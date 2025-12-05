@@ -10,8 +10,12 @@ class HttpApi implements HttpApiInterface {
   HttpApi({
     required this.httpClient,
     required this.config,
+    Map<String, dynamic>? customParameters,
+    Map<String, String>? customHeaders,
+    this.responseParser,
   })  : messages = MessagesFactory(config.locale).messages,
-        headers = _buildHeaders(config);
+        headers = customHeaders ?? _buildHeaders(config),
+        globalParameters = customParameters ?? _buildGloableParamiters(config);
 
   @override
   final Client httpClient;
@@ -22,22 +26,29 @@ class HttpApi implements HttpApiInterface {
   @override
   final Map<String, String>? headers;
 
+  final Map<String, dynamic>? globalParameters;
+
   @override
   final MessagesInterface messages;
+
+  @override
+  final ResponseParser? responseParser;
 
   Uri _getUri(
     String endPoint, {
     Map<String, dynamic>? parameters,
   }) {
     final uri = Uri.parse('${config.baseUrl}$endPoint');
-    return uri.addParameters(
-      {'locale': config.locale},
-    ).addParameters(
-      parameters,
-    );
+    return uri.addParameters(globalParameters).addParameters(parameters);
   }
 
-  static Map<String, String>? _buildHeaders(HttpApiConfig config) {
+  static Map<String, dynamic> _buildGloableParamiters(HttpApiConfig config) {
+    return {
+      'locale': config.locale,
+    };
+  }
+
+  static Map<String, String> _buildHeaders(HttpApiConfig config) {
     return {
       'Accept': '*/*',
       'Content-Type': 'application/json',
@@ -49,17 +60,24 @@ class HttpApi implements HttpApiInterface {
   Future<T> _handleResponse<T>({
     required Response response,
     required T Function(ResponseModelInterface responseModel) dataMapper,
+    ResponseParser? customResponseParser,
   }) async {
     final data = json.decode(response.body);
-    final responseModel = ResponseModelImp.fromMap(data);
-    // success
-    if (responseModel.success) {
+
+    if (customResponseParser != null) {
+      ResponseModelInterface responseModel = customResponseParser(data);
       return dataMapper.call(responseModel);
     } else {
-      throw ServerException(
-        responseModel.message ?? messages.unKnownServerMessage,
-        statusCode: response.statusCode,
-      );
+      ResponseModelImp responseModel =
+          ResponseModelImp.fromMap(data); // Default
+      if (responseModel.success) {
+        return dataMapper.call(responseModel);
+      } else {
+        throw ServerException(
+          responseModel.message ?? messages.unKnownServerMessage,
+          statusCode: response.statusCode,
+        );
+      }
     }
   }
 
@@ -68,6 +86,7 @@ class HttpApi implements HttpApiInterface {
     required String endPoint,
     Map<String, dynamic>? parameters,
     required final T Function(ResponseModelInterface responseModel) dataMapper,
+    ResponseParser? customResponseParser,
   }) async {
     try {
       final uri = _getUri(endPoint, parameters: parameters);
@@ -84,6 +103,7 @@ class HttpApi implements HttpApiInterface {
       final data = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
+        customResponseParser: responseParser ?? customResponseParser,
       );
       return data;
     } catch (e, s) {
@@ -98,6 +118,7 @@ class HttpApi implements HttpApiInterface {
     String? method,
     Map<String, dynamic>? parameters,
     required T Function(ResponseModelInterface responseModel) dataMapper,
+    ResponseParser? customResponseParser,
   }) async {
     try {
       final uri = _getUri(endPoint, parameters: parameters);
@@ -114,6 +135,7 @@ class HttpApi implements HttpApiInterface {
       final data = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
+        customResponseParser: responseParser ?? customResponseParser,
       );
       return data;
     } catch (e, s) {
@@ -128,6 +150,7 @@ class HttpApi implements HttpApiInterface {
     Map<String, dynamic>? parameters,
     required Map<String, dynamic> body,
     required T Function(ResponseModelInterface responseModel) dataMapper,
+    ResponseParser? customResponseParser,
   }) async {
     try {
       final uri = _getUri(endPoint, parameters: parameters);
@@ -148,6 +171,7 @@ class HttpApi implements HttpApiInterface {
       final data = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
+        customResponseParser: responseParser ?? customResponseParser,
       );
       return data;
     } catch (e, s) {
@@ -162,6 +186,7 @@ class HttpApi implements HttpApiInterface {
     Map<String, dynamic>? parameters,
     required Map<String, dynamic> body,
     required T Function(ResponseModelInterface responseModel) dataMapper,
+    ResponseParser? customResponseParser,
   }) async {
     try {
       final uri = _getUri(endPoint, parameters: parameters);
@@ -182,6 +207,7 @@ class HttpApi implements HttpApiInterface {
       final data = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
+        customResponseParser: responseParser ?? customResponseParser,
       );
       return data;
     } catch (e, s) {
@@ -195,6 +221,7 @@ class HttpApi implements HttpApiInterface {
     required String endPoint,
     Map<String, dynamic>? parameters,
     required final T Function(Uint8List bodyBytes) dataMapper,
+    ResponseParser? customResponseParser,
   }) async {
     try {
       final uri = _getUri(endPoint, parameters: parameters);
@@ -229,6 +256,7 @@ class HttpApi implements HttpApiInterface {
     Map<String, dynamic>? parameters,
     required Map<String, dynamic> body,
     required T Function(ResponseModelInterface responseModel) dataMapper,
+    ResponseParser? customResponseParser,
   }) async {
     try {
       final uri = _getUri(endPoint, parameters: parameters);
@@ -249,6 +277,7 @@ class HttpApi implements HttpApiInterface {
       final data = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
+        customResponseParser: responseParser ?? customResponseParser,
       );
       return data;
     } catch (e, s) {
@@ -265,6 +294,7 @@ class HttpApi implements HttpApiInterface {
     required List<MultipartFile> files,
     required Map<String, String> fields,
     required T Function(ResponseModelInterface responseModel) dataMapper,
+    ResponseParser? customResponseParser,
   }) async {
     try {
       final uri = _getUri(endPoint);
@@ -299,6 +329,7 @@ class HttpApi implements HttpApiInterface {
       final data = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
+        customResponseParser: responseParser ?? customResponseParser,
       );
       return data;
     } catch (e, s) {
