@@ -63,21 +63,20 @@ class HttpApi implements HttpApiInterface {
     ResponseParser? customResponseParser,
   }) async {
     final data = json.decode(response.body);
-
+    ResponseModelInterface responseModel;
     if (customResponseParser != null) {
-      ResponseModelInterface responseModel = customResponseParser(data);
+      responseModel = customResponseParser(data);
+    } else {
+      responseModel = ResponseModelImp.fromMap(data); // Default
+    }
+
+    if (responseModel.success) {
       return dataMapper.call(responseModel);
     } else {
-      ResponseModelImp responseModel =
-          ResponseModelImp.fromMap(data); // Default
-      if (responseModel.success) {
-        return dataMapper.call(responseModel);
-      } else {
-        throw ServerException(
-          responseModel.message ?? messages.unKnownServerMessage,
-          statusCode: response.statusCode,
-        );
-      }
+      throw ServerException(
+        responseModel.message ?? messages.unKnownServerMessage,
+        statusCode: response.statusCode,
+      );
     }
   }
 
