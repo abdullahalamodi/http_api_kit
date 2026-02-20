@@ -30,16 +30,17 @@ class ItemStateModel<T> extends BaseStateModel<T?> {
     );
   }
 
+  // convert to deep copy
   ItemStateModel<T> copyWith({
     bool? loading,
-    String? error,
-    T? data,
+    Object? error = sentinel,
+    Object? data = sentinel,
     bool? innerloading,
   }) {
     return ItemStateModel<T>(
       loading: loading ?? this.loading,
-      error: error ?? this.error,
-      dataModel: data ?? this.dataModel,
+      error: isUndefined(error) ? this.error : error as String?,
+      dataModel: isUndefined(data) ? this.dataModel : data as T?,
       innerloading: innerloading ?? this.innerloading,
     );
   }

@@ -55,14 +55,16 @@ class ListStateModel<T> extends BaseStateModel<PaginatedDataModel<T>?> {
 
   ListStateModel<T> copyWith({
     bool? loading,
-    String? error,
-    PaginatedDataModel<T>? dataModel,
+    Object? error = sentinel,
+    Object? dataModel = sentinel,
     bool? innerloading,
   }) {
     return ListStateModel<T>(
       loading: loading ?? this.loading,
-      error: error ?? this.error,
-      dataModel: dataModel ?? this.dataModel,
+      error: isUndefined(error) ? this.error : error as String?,
+      dataModel: isUndefined(dataModel)
+          ? this.dataModel
+          : dataModel as PaginatedDataModel<T>?,
       innerloading: innerloading ?? this.innerloading,
     );
   }
