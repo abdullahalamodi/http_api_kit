@@ -13,9 +13,11 @@ class HttpApi implements HttpApiInterface {
     Map<String, dynamic>? customParameters,
     Map<String, String>? customHeaders,
     this.responseParser,
+    HttpApiLogger? logger,
   })  : messages = MessagesFactory(config.locale).messages,
         headers = customHeaders ?? _buildHeaders(config),
-        globalParameters = customParameters ?? _buildGloableParamiters(config);
+        logger = logger ?? const NoopHttpApiLogger(),
+        globalParameters = customParameters ?? _buildGlobalParameters(config);
 
   @override
   final Client httpClient;
@@ -24,15 +26,18 @@ class HttpApi implements HttpApiInterface {
   final HttpApiConfig config;
 
   @override
-  final Map<String, String>? headers;
+  final Map<String, String> headers;
 
-  final Map<String, dynamic>? globalParameters;
+  final Map<String, dynamic> globalParameters;
 
   @override
   final MessagesInterface messages;
 
   @override
   final ResponseParser? responseParser;
+
+  @override
+  final HttpApiLogger logger;
 
   Uri _getUri(
     String endPoint, {
@@ -42,7 +47,7 @@ class HttpApi implements HttpApiInterface {
     return uri.addParameters(globalParameters).addParameters(parameters);
   }
 
-  static Map<String, dynamic> _buildGloableParamiters(HttpApiConfig config) {
+  static Map<String, dynamic> _buildGlobalParameters(HttpApiConfig config) {
     return {
       'locale': config.locale,
     };
@@ -57,26 +62,111 @@ class HttpApi implements HttpApiInterface {
     };
   }
 
+  Map<String, String> _mergeHeaders(Map<String, String>? requestHeaders) {
+    return {
+      ...headers,
+      if (requestHeaders != null) ...requestHeaders,
+    };
+  }
+
+  Future<T> _sendJsonRequest<T>({
+    required String endPoint,
+    required String method,
+    Map<String, dynamic>? parameters,
+    Map<String, String>? requestHeaders,
+    Map<String, dynamic>? body,
+    required T Function(ResponseModelInterface responseModel) dataMapper,
+    ResponseParser? customResponseParser,
+  }) async {
+    try {
+      final uri = _getUri(endPoint, parameters: parameters);
+      final mergedHeaders = _mergeHeaders(requestHeaders);
+
+      logger.logRequest(HttpApiRequestLog(
+        uri: uri,
+        method: method,
+        headers: mergedHeaders,
+        body: body ?? const {},
+      ));
+
+      final response = switch (method) {
+        'GET' => await httpClient.get(uri, headers: mergedHeaders),
+        'POST' => await httpClient.post(
+            uri,
+            headers: mergedHeaders,
+            body: json.encode(body ?? const {}),
+          ),
+        'PUT' => await httpClient.put(
+            uri,
+            headers: mergedHeaders,
+            body: json.encode(body ?? const {}),
+          ),
+        'DELETE' => await httpClient.delete(
+            uri,
+            headers: mergedHeaders,
+            body: json.encode(body ?? const {}),
+          ),
+        _ => throw UnsupportedError('HTTP method $method is not supported.'),
+      };
+
+      logger.logResponse(HttpApiResponseLog(response));
+
+      return _handleResponse(
+        response: response,
+        dataMapper: dataMapper,
+        customResponseParser: customResponseParser,
+      );
+    } catch (e, s) {
+      _logError(e, s);
+      throw _switchError(e);
+    }
+  }
+
   Future<T> _handleResponse<T>({
     required Response response,
     required T Function(ResponseModelInterface responseModel) dataMapper,
     ResponseParser? customResponseParser,
   }) async {
-    final data = json.decode(response.body);
-    ResponseModelInterface responseModel;
-    if (customResponseParser != null) {
-      responseModel = customResponseParser(data);
-    } else {
-      responseModel = ResponseModelImp.fromMap(data); // Default
+    if (!_isSuccessStatusCode(response.statusCode)) {
+      throw ServerException(
+        _errorMessageFromResponse(response, customResponseParser),
+        statusCode: response.statusCode,
+      );
     }
+
+    final data = json.decode(response.body);
+    final parser =
+        customResponseParser ?? responseParser ?? ResponseModelImp.fromMap;
+    final responseModel = parser(data);
 
     if (responseModel.success) {
       return dataMapper.call(responseModel);
-    } else {
-      throw ServerException(
-        responseModel.message ?? messages.unKnownServerMessage,
-        statusCode: response.statusCode,
-      );
+    }
+
+    throw ServerException(
+      responseModel.message ?? messages.unKnownServerMessage,
+      statusCode: response.statusCode,
+    );
+  }
+
+  bool _isSuccessStatusCode(int statusCode) {
+    return statusCode >= 200 && statusCode < 300;
+  }
+
+  String _errorMessageFromResponse(
+    Response response,
+    ResponseParser? customResponseParser,
+  ) {
+    try {
+      final data = json.decode(response.body);
+      final parser =
+          customResponseParser ?? responseParser ?? ResponseModelImp.fromMap;
+      final responseModel = parser(data);
+      return responseModel.message ?? messages.unKnownServerMessage;
+    } on FormatException {
+      return messages.unKnownServerMessage;
+    } catch (_) {
+      return messages.unKnownServerMessage;
     }
   }
 
@@ -84,31 +174,18 @@ class HttpApi implements HttpApiInterface {
   Future<T> getItem<T>({
     required String endPoint,
     Map<String, dynamic>? parameters,
-    required final T Function(ResponseModelInterface responseModel) dataMapper,
+    Map<String, String>? requestHeaders,
+    required T Function(ResponseModelInterface responseModel) dataMapper,
     ResponseParser? customResponseParser,
-  }) async {
-    try {
-      final uri = _getUri(endPoint, parameters: parameters);
-
-      /// log request
-      CustomLogger.requestLogger(uri: uri, method: 'GET', headers: headers);
-
-      ///
-      final response = await httpClient.get(uri, headers: headers);
-
-      /// log response
-      CustomLogger.responseLogger(response);
-
-      final data = await _handleResponse(
-        response: response,
-        dataMapper: dataMapper,
-        customResponseParser: responseParser ?? customResponseParser,
-      );
-      return data;
-    } catch (e, s) {
-      _logError(e, s);
-      throw _switchError(e);
-    }
+  }) {
+    return _sendJsonRequest(
+      endPoint: endPoint,
+      method: 'GET',
+      parameters: parameters,
+      requestHeaders: requestHeaders,
+      dataMapper: dataMapper,
+      customResponseParser: customResponseParser,
+    );
   }
 
   @override
@@ -116,133 +193,90 @@ class HttpApi implements HttpApiInterface {
     required String endPoint,
     String? method,
     Map<String, dynamic>? parameters,
+    Map<String, String>? requestHeaders,
     required T Function(ResponseModelInterface responseModel) dataMapper,
     ResponseParser? customResponseParser,
-  }) async {
-    try {
-      final uri = _getUri(endPoint, parameters: parameters);
-
-      /// log request
-      CustomLogger.requestLogger(uri: uri, method: 'GET', headers: headers);
-
-      ///
-      final response = await httpClient.get(uri, headers: headers);
-
-      /// log response
-      CustomLogger.responseLogger(response);
-
-      final data = await _handleResponse(
-        response: response,
-        dataMapper: dataMapper,
-        customResponseParser: responseParser ?? customResponseParser,
-      );
-      return data;
-    } catch (e, s) {
-      _logError(e, s);
-      throw _switchError(e);
-    }
+  }) {
+    return _sendJsonRequest(
+      endPoint: endPoint,
+      method: method ?? 'GET',
+      parameters: parameters,
+      requestHeaders: requestHeaders,
+      dataMapper: dataMapper,
+      customResponseParser: customResponseParser,
+    );
   }
 
   @override
   Future<T> post<T>({
     required String endPoint,
     Map<String, dynamic>? parameters,
+    Map<String, String>? requestHeaders,
     required Map<String, dynamic> body,
     required T Function(ResponseModelInterface responseModel) dataMapper,
     ResponseParser? customResponseParser,
-  }) async {
-    try {
-      final uri = _getUri(endPoint, parameters: parameters);
-
-      /// log request
-      CustomLogger.requestLogger(uri: uri, method: 'POST', headers: headers);
-
-      ///
-      final response = await httpClient.post(
-        uri,
-        headers: headers,
-        body: json.encode(body),
-      );
-
-      /// log response
-      CustomLogger.responseLogger(response);
-
-      final data = await _handleResponse(
-        response: response,
-        dataMapper: dataMapper,
-        customResponseParser: responseParser ?? customResponseParser,
-      );
-      return data;
-    } catch (e, s) {
-      _logError(e, s);
-      throw _switchError(e);
-    }
+  }) {
+    return _sendJsonRequest(
+      endPoint: endPoint,
+      method: 'POST',
+      parameters: parameters,
+      requestHeaders: requestHeaders,
+      body: body,
+      dataMapper: dataMapper,
+      customResponseParser: customResponseParser,
+    );
   }
 
   @override
   Future<T> put<T>({
     required String endPoint,
     Map<String, dynamic>? parameters,
+    Map<String, String>? requestHeaders,
     required Map<String, dynamic> body,
     required T Function(ResponseModelInterface responseModel) dataMapper,
     ResponseParser? customResponseParser,
-  }) async {
-    try {
-      final uri = _getUri(endPoint, parameters: parameters);
-
-      /// log request
-      CustomLogger.requestLogger(uri: uri, method: 'PUT', headers: headers);
-
-      ///
-      final response = await httpClient.put(
-        uri,
-        headers: headers,
-        body: json.encode(body),
-      );
-
-      /// log response
-      CustomLogger.responseLogger(response);
-
-      final data = await _handleResponse(
-        response: response,
-        dataMapper: dataMapper,
-        customResponseParser: responseParser ?? customResponseParser,
-      );
-      return data;
-    } catch (e, s) {
-      _logError(e, s);
-      throw _switchError(e);
-    }
+  }) {
+    return _sendJsonRequest(
+      endPoint: endPoint,
+      method: 'PUT',
+      parameters: parameters,
+      requestHeaders: requestHeaders,
+      body: body,
+      dataMapper: dataMapper,
+      customResponseParser: customResponseParser,
+    );
   }
 
   @override
   Future<T> getFile<T>({
     required String endPoint,
     Map<String, dynamic>? parameters,
-    required final T Function(Uint8List bodyBytes) dataMapper,
+    Map<String, String>? requestHeaders,
+    required T Function(Uint8List bodyBytes) dataMapper,
     ResponseParser? customResponseParser,
   }) async {
     try {
       final uri = _getUri(endPoint, parameters: parameters);
+      final mergedHeaders = _mergeHeaders(requestHeaders);
 
-      /// log request
-      CustomLogger.requestLogger(uri: uri, method: 'GET', headers: headers);
+      logger.logRequest(HttpApiRequestLog(
+        uri: uri,
+        method: 'GET',
+        headers: mergedHeaders,
+      ));
 
-      ///
-      final response = await httpClient.get(uri, headers: headers);
+      final response = await httpClient.get(uri, headers: mergedHeaders);
 
-      /// log response
-      CustomLogger.responseLogger(response);
+      logger.logResponse(HttpApiResponseLog(response));
 
-      if (response.statusCode == 200) {
-        final data = dataMapper.call(response.bodyBytes);
-        return data;
-      } else {
-        throw ServerException(
-          messages.unKnownServerMessage,
-          statusCode: response.statusCode,
-        );
+      if (_isSuccessStatusCode(response.statusCode)) {
+        return dataMapper.call(response.bodyBytes);
       }
+
+      throw ServerException(
+        messages.unKnownServerMessage,
+        statusCode: response.statusCode,
+      );
     } catch (e, s) {
       _logError(e, s);
       throw _switchError(e);
@@ -253,36 +287,20 @@ class HttpApi implements HttpApiInterface {
   Future<T> delete<T>({
     required String endPoint,
     Map<String, dynamic>? parameters,
+    Map<String, String>? requestHeaders,
     required Map<String, dynamic> body,
     required T Function(ResponseModelInterface responseModel) dataMapper,
     ResponseParser? customResponseParser,
-  }) async {
-    try {
-      final uri = _getUri(endPoint, parameters: parameters);
-
-      /// log request
-      CustomLogger.requestLogger(uri: uri, method: 'DELETE', headers: headers);
-
-      ///
-      final response = await httpClient.delete(
-        uri,
-        headers: headers,
-        body: json.encode(body),
-      );
-
-      /// log response
-      CustomLogger.responseLogger(response);
-
-      final data = await _handleResponse(
-        response: response,
-        dataMapper: dataMapper,
-        customResponseParser: responseParser ?? customResponseParser,
-      );
-      return data;
-    } catch (e, s) {
-      _logError(e, s);
-      throw _switchError(e);
-    }
+  }) {
+    return _sendJsonRequest(
+      endPoint: endPoint,
+      method: 'DELETE',
+      parameters: parameters,
+      requestHeaders: requestHeaders,
+      body: body,
+      dataMapper: dataMapper,
+      customResponseParser: customResponseParser,
+    );
   }
 
   @override
@@ -290,47 +308,42 @@ class HttpApi implements HttpApiInterface {
     required String endPoint,
     String method = 'POST',
     Map<String, dynamic>? parameters,
+    Map<String, String>? requestHeaders,
     required List<MultipartFile> files,
     required Map<String, String> fields,
     required T Function(ResponseModelInterface responseModel) dataMapper,
     ResponseParser? customResponseParser,
   }) async {
     try {
-      final uri = _getUri(endPoint);
+      final uri = _getUri(endPoint, parameters: parameters);
+      final mergedHeaders = _mergeHeaders(requestHeaders);
 
-      /// log request
-      CustomLogger.requestLogger(
+      logger.logRequest(HttpApiRequestLog(
         uri: uri,
         method: method,
-        headers: headers,
+        headers: mergedHeaders,
         body: fields,
         files: files,
-      );
+      ));
 
-      final request = MultipartRequest(
-        method,
-        uri,
-      );
+      final request = MultipartRequest(method, uri);
 
-      request.headers.addAll(headers!);
+      request.headers.addAll(mergedHeaders);
       if (fields.isNotEmpty) {
         request.fields.addAll(fields);
       }
       request.files.addAll(files);
 
-      ///
       final streamResponse = await httpClient.send(request);
       final response = await Response.fromStream(streamResponse);
 
-      /// log response
-      CustomLogger.responseLogger(response);
+      logger.logResponse(HttpApiResponseLog(response));
 
-      final data = await _handleResponse(
+      return _handleResponse(
         response: response,
         dataMapper: dataMapper,
-        customResponseParser: responseParser ?? customResponseParser,
+        customResponseParser: customResponseParser,
       );
-      return data;
     } catch (e, s) {
       _logError(e, s);
       throw _switchError(e);
@@ -339,8 +352,8 @@ class HttpApi implements HttpApiInterface {
 
   HttpApiException _switchError(Object e) {
     switch (e) {
-      case ServerException():
-        return ServerException(e.message);
+      case HttpApiException():
+        return e;
 
       case SocketException():
         return InternetException(messages.internetMessage);
@@ -354,10 +367,6 @@ class HttpApi implements HttpApiInterface {
   }
 
   void _logError(Object e, StackTrace s) {
-    CustomLogger.exceptionLogger(
-      msg: 'http api',
-      error: e,
-      stackTrace: s,
-    );
+    logger.logException(e, s);
   }
 }

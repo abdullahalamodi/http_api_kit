@@ -13,6 +13,7 @@ class AsyncListWidget<T> extends StatelessWidget {
     this.emptyWidgetBuilder,
     this.loadingWidgetBuilder,
     this.errorWidgetBuilder,
+    this.refreshingBuilder,
   });
 
   final BaseStateModel<PaginatedDataModel<T>?> asyncData;
@@ -22,6 +23,7 @@ class AsyncListWidget<T> extends StatelessWidget {
   final Widget Function(BuildContext context)? emptyWidgetBuilder;
   final Widget Function()? loadingWidgetBuilder;
   final Widget Function(String error)? errorWidgetBuilder;
+  final Widget Function(BuildContext context, Widget child)? refreshingBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +35,7 @@ class AsyncListWidget<T> extends StatelessWidget {
                 error: error,
                 onRetry: () => onRetry(),
               ),
+      refreshingBuilder: refreshingBuilder,
       dataBuilder: (dataModel) {
         if (dataModel?.data == null || dataModel!.data.isEmpty) {
           if (emptyWidgetBuilder != null) {

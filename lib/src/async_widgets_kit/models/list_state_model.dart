@@ -14,6 +14,9 @@ class ListStateModel<T> extends BaseStateModel<PaginatedDataModel<T>?> {
   @override
   final bool innerloading;
 
+  @override
+  bool get isRefreshing => innerloading;
+
   ListStateModel({
     required this.loading,
     required this.error,

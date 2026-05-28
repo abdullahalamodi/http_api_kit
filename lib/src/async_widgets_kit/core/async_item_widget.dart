@@ -11,6 +11,7 @@ class AsyncItemWidget<T> extends StatelessWidget {
     this.emptyWidgetBuilder,
     this.loadingWidgetBuilder,
     this.errorWidgetBuilder,
+    this.refreshingBuilder,
   });
 
   final ItemStateModel<T> asyncData;
@@ -19,6 +20,7 @@ class AsyncItemWidget<T> extends StatelessWidget {
   final Widget Function(T? data) dataBuilder;
   final Widget Function()? loadingWidgetBuilder;
   final Widget Function(String error)? errorWidgetBuilder;
+  final Widget Function(BuildContext context, Widget child)? refreshingBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -30,6 +32,7 @@ class AsyncItemWidget<T> extends StatelessWidget {
                 error: error,
                 onRetry: () => onRetry(),
               ),
+      refreshingBuilder: refreshingBuilder,
       dataBuilder: (data) {
         if (data == null) {
           if (emptyWidgetBuilder != null) {

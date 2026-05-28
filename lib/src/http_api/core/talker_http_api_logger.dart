@@ -3,44 +3,40 @@ import 'dart:convert';
 import 'package:http_interceptor/http_interceptor.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
-class TalkerHttpApiLogger {
-  static final TalkerHttpApiLogger _instance = TalkerHttpApiLogger._internal();
-  factory TalkerHttpApiLogger({Talker? talker}) {
-    _talker = talker ?? Talker();
-    return _instance;
-  }
-  TalkerHttpApiLogger._internal();
+import 'http_api_logger.dart';
 
-  static late Talker _talker;
+class TalkerHttpApiLoggerAdapter implements HttpApiLogger {
+  TalkerHttpApiLoggerAdapter({Talker? talker}) : _talker = talker ?? Talker();
 
-  void logRequest({
-    required HttpRequestLog requestLog,
-  }) {
-    _talker.logCustom(requestLog);
+  final Talker _talker;
+
+  @override
+  void logRequest(HttpApiRequestLog log) {
+    _talker.logCustom(_TalkerHttpRequestLog(log));
   }
 
-  void logResponse({
-    required HttpResponseLog responseLog,
-  }) {
-    _talker.logCustom(responseLog);
+  @override
+  void logResponse(HttpApiResponseLog log) {
+    _talker.logCustom(_TalkerHttpResponseLog(log.response));
   }
+
+  @override
+  void logException(Object error, StackTrace stackTrace) {
+    _talker.handle(error, stackTrace, 'http api');
+  }
+}
+
+@Deprecated('Use TalkerHttpApiLoggerAdapter instead.')
+class TalkerHttpApiLogger extends TalkerHttpApiLoggerAdapter {
+  TalkerHttpApiLogger({super.talker});
 }
 
 const encoder = JsonEncoder.withIndent('  ');
 
-class HttpRequestLog extends TalkerLog {
-  HttpRequestLog(
-    super.url, {
-    required this.method,
-    required this.headers,
-    required this.body,
-    required this.files,
-  });
+class _TalkerHttpRequestLog extends TalkerLog {
+  _TalkerHttpRequestLog(this.requestLog) : super(requestLog.uri.toString());
 
-  final String method;
-  final Map<String, String>? headers;
-  final Map<String, dynamic> body;
-  final List<MultipartFile> files;
+  final HttpApiRequestLog requestLog;
 
   @override
   AnsiPen get pen => (AnsiPen()..xterm(219));
@@ -49,27 +45,26 @@ class HttpRequestLog extends TalkerLog {
   String get key => TalkerLogType.httpRequest.key;
 
   @override
-  String generateTextMessage(
-      {TimeFormat timeFormat = TimeFormat.timeAndSeconds}) {
-    var msg = '[$title] [$method] $message';
+  String generateTextMessage({
+    TimeFormat timeFormat = TimeFormat.timeAndSeconds,
+  }) {
+    var msg = '[$title] [${requestLog.method}] $message';
 
     try {
-      if (headers != null) {
-        final prettyHeaders = encoder.convert(headers);
-        msg += '\nHeaders: $prettyHeaders';
-      }
-      final prettyBody = encoder.convert(body);
+      final prettyHeaders = encoder.convert(requestLog.headers);
+      msg += '\nHeaders: $prettyHeaders';
+      final prettyBody = encoder.convert(requestLog.body);
       msg += '\nBody: $prettyBody';
     } catch (_) {
-      msg += '\nError Pasrse Body: ';
-      msg += '\nRow body: ${body.toString()}';
+      msg += '\nError Parse Body: ';
+      msg += '\nRaw body: ${requestLog.body}';
     }
     return msg;
   }
 }
 
-class HttpResponseLog extends TalkerLog {
-  HttpResponseLog(this.response)
+class _TalkerHttpResponseLog extends TalkerLog {
+  _TalkerHttpResponseLog(this.response)
       : super(response.request?.url.toString() ?? 'NO_URL_!!');
 
   final Response response;
@@ -81,8 +76,9 @@ class HttpResponseLog extends TalkerLog {
   String get title => TalkerLogType.httpResponse.key;
 
   @override
-  String generateTextMessage(
-      {TimeFormat timeFormat = TimeFormat.timeAndSeconds}) {
+  String generateTextMessage({
+    TimeFormat timeFormat = TimeFormat.timeAndSeconds,
+  }) {
     var msg = '[$title] [${response.request?.method}] $message';
 
     final headers = response.request?.headers;
@@ -99,8 +95,8 @@ class HttpResponseLog extends TalkerLog {
       final prettyBody = encoder.convert(jsonDecode(body));
       msg += '\nBody: $prettyBody';
     } catch (_) {
-      msg += '\nError Pasrse Body: ';
-      msg += '\nTry to print row body: $body';
+      msg += '\nError Parse Body: ';
+      msg += '\nTry to print raw body: $body';
     }
     return msg;
   }

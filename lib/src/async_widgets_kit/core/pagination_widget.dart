@@ -1,39 +1,27 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import 'package:flutter/material.dart';
+
 import '../async_widgets_kit.dart';
 
-class PaginationWidget extends StatefulWidget {
+class PaginationWidget extends StatelessWidget {
   const PaginationWidget({
     super.key,
     required this.pagination,
     required this.onChangePage,
   });
+
   final PaginationModel pagination;
   final void Function(int page) onChangePage;
 
   @override
-  State<PaginationWidget> createState() => _PaginationWidgetState();
-}
-
-class _PaginationWidgetState extends State<PaginationWidget> {
-  int _currentPage = 1;
-
-  @override
-  void didChangeDependencies() {
-    _currentPage = widget.pagination.currentPage;
-    super.didChangeDependencies();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final currentPage = pagination.currentPage;
     final pagesList = [
-      if (widget.pagination.currentPage > 2) 1,
-      if (widget.pagination.previousPage != null)
-        widget.pagination.previousPage,
-      widget.pagination.currentPage,
-      if (widget.pagination.nextPage != null) widget.pagination.nextPage,
-      if (widget.pagination.totalPages - 1 > widget.pagination.currentPage)
-        widget.pagination.totalPages,
+      if (currentPage > 2) 1,
+      if (pagination.previousPage != null) pagination.previousPage,
+      currentPage,
+      if (pagination.nextPage != null) pagination.nextPage,
+      if (pagination.totalPages - 1 > currentPage) pagination.totalPages,
     ];
 
     return Padding(
@@ -42,19 +30,16 @@ class _PaginationWidgetState extends State<PaginationWidget> {
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           for (var i = 0; i < pagesList.length; i++) ...[
-            // befor last page
             if ((i == pagesList.length - 1) &&
-                widget.pagination.totalPages - 1 > _currentPage)
+                pagination.totalPages - 1 > currentPage)
               const Text(' ... '),
-
             InkWell(
               splashColor: Colors.transparent,
               hoverColor: Colors.transparent,
               onTap: () {
-                if (pagesList[i] == _currentPage) return;
-                _currentPage = pagesList[i]!;
-                widget.onChangePage(_currentPage);
-                setState(() {});
+                final page = pagesList[i]!;
+                if (page == currentPage) return;
+                onChangePage(page);
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(
@@ -63,7 +48,7 @@ class _PaginationWidgetState extends State<PaginationWidget> {
                 ),
                 margin: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: BoxDecoration(
-                  color: pagesList[i] == _currentPage
+                  color: pagesList[i] == currentPage
                       ? Colors.orange[100]
                       : Colors.grey[200],
                   borderRadius: BorderRadius.circular(5),
@@ -71,16 +56,14 @@ class _PaginationWidgetState extends State<PaginationWidget> {
                 child: Text(
                   '${pagesList[i]}',
                   style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: pagesList[i] == _currentPage
+                        color: pagesList[i] == currentPage
                             ? Colors.orange
                             : Colors.grey,
                       ),
                 ),
               ),
             ),
-
-            // after first page
-            if (i == 0 && pagesList.length > 2 && _currentPage > 2)
+            if (i == 0 && pagesList.length > 2 && currentPage > 2)
               const Text(' ... '),
           ],
         ],

@@ -14,6 +14,9 @@ class ItemStateModel<T> extends BaseStateModel<T?> {
   @override
   final bool innerloading;
 
+  @override
+  bool get isRefreshing => innerloading;
+
   ItemStateModel({
     required this.loading,
     required this.error,

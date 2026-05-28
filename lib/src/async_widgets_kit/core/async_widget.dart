@@ -9,12 +9,14 @@ class AsyncWidget<T> extends StatelessWidget {
     required this.dataBuilder,
     required this.loadingBuilder,
     required this.errorBuilder,
+    this.refreshingBuilder,
   });
 
   final BaseStateModel<T> asyncData;
   final Widget Function(T data) dataBuilder;
   final Widget Function() loadingBuilder;
   final Widget Function(String error) errorBuilder;
+  final Widget Function(BuildContext context, Widget child)? refreshingBuilder;
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +24,17 @@ class AsyncWidget<T> extends StatelessWidget {
       return loadingBuilder.call();
     } else if (asyncData.error != null) {
       return errorBuilder.call(asyncData.error!);
-    } else {
-      return dataBuilder.call(asyncData.dataModel);
     }
+
+    final child = dataBuilder.call(asyncData.dataModel);
+    if (!asyncData.isRefreshing) {
+      return child;
+    }
+
+    if (refreshingBuilder != null) {
+      return refreshingBuilder!(context, child);
+    }
+
+    return child;
   }
 }

@@ -77,7 +77,8 @@ class PaginationModel {
     return PaginationModel(
       currentPage: map['current_page'] as int,
       nextPage: map['next_page'] != null ? map['next_page'] as int : null,
-      previousPage: map['previous_page'] != null ? map['previous_page'] as int : null,
+      previousPage:
+          map['previous_page'] != null ? map['previous_page'] as int : null,
       totalPages: map['total_pages'] as int,
       perPage: map['per_page'] != null ? map['per_page'] as int : null,
       totalEntries: map['total_entries'] as int,
