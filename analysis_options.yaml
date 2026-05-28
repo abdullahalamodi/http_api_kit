@@ -5,8 +5,4 @@ include: package:flutter_lints/flutter.yaml
 
 linter:
   rules:
-    implementation_imports:
-      entry_points:
-        - lib/**
-      excluded:
-        - lib/src/**
+    implementation_imports: true

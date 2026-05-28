@@ -136,7 +136,7 @@ class HttpApi implements HttpApiInterface {
 
     final data = json.decode(response.body);
     final parser =
-        customResponseParser ?? responseParser ?? ResponseModelImp.fromMap;
+        customResponseParser ?? responseParser ?? ResponseModel.fromMap;
     final responseModel = parser(data);
 
     if (responseModel.success) {
@@ -160,7 +160,7 @@ class HttpApi implements HttpApiInterface {
     try {
       final data = json.decode(response.body);
       final parser =
-          customResponseParser ?? responseParser ?? ResponseModelImp.fromMap;
+          customResponseParser ?? responseParser ?? ResponseModel.fromMap;
       final responseModel = parser(data);
       return responseModel.message ?? messages.unKnownServerMessage;
     } on FormatException {
@@ -274,7 +274,7 @@ class HttpApi implements HttpApiInterface {
       }
 
       throw ServerException(
-        messages.unKnownServerMessage,
+        _errorMessageFromResponse(response, customResponseParser),
         statusCode: response.statusCode,
       );
     } catch (e, s) {

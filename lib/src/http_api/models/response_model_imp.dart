@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'response_model_interface.dart';
 
-class ResponseModelImp implements ResponseModelInterface {
+class ResponseModel implements ResponseModelInterface {
   @override
   final int statusCode;
   @override
@@ -12,20 +12,20 @@ class ResponseModelImp implements ResponseModelInterface {
   @override
   final dynamic data;
 
-  ResponseModelImp({
+  ResponseModel({
     required this.statusCode,
     required this.success,
     required this.message,
     required this.data,
   });
 
-  ResponseModelImp copyWith({
+  ResponseModel copyWith({
     int? statusCode,
     bool? success,
     ValueGetter<String?>? message,
     dynamic data,
   }) {
-    return ResponseModelImp(
+    return ResponseModel(
       statusCode: statusCode ?? this.statusCode,
       success: success ?? this.success,
       message: message != null ? message() : this.message,
@@ -42,8 +42,8 @@ class ResponseModelImp implements ResponseModelInterface {
     };
   }
 
-  factory ResponseModelImp.fromMap(Map<String, dynamic> map) {
-    return ResponseModelImp(
+  factory ResponseModel.fromMap(Map<String, dynamic> map) {
+    return ResponseModel(
       statusCode: map['status_code']?.toInt() ?? 0,
       success: map['success'] ?? false,
       message: map['message'],
@@ -53,14 +53,14 @@ class ResponseModelImp implements ResponseModelInterface {
 
   @override
   String toString() {
-    return 'ResponseModelImp(statusCode: $statusCode, success: $success, message: $message, data: $data)';
+    return 'ResponseModel(statusCode: $statusCode, success: $success, message: $message, data: $data)';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is ResponseModelImp &&
+    return other is ResponseModel &&
         other.statusCode == statusCode &&
         other.success == success &&
         other.message == message &&
@@ -73,5 +73,24 @@ class ResponseModelImp implements ResponseModelInterface {
         success.hashCode ^
         message.hashCode ^
         data.hashCode;
+  }
+}
+
+@Deprecated('Use ResponseModel instead.')
+class ResponseModelImp extends ResponseModel {
+  ResponseModelImp({
+    required super.statusCode,
+    required super.success,
+    required super.message,
+    required super.data,
+  });
+
+  factory ResponseModelImp.fromMap(Map<String, dynamic> map) {
+    return ResponseModelImp(
+      statusCode: map['status_code']?.toInt() ?? 0,
+      success: map['success'] ?? false,
+      message: map['message'],
+      data: map['data'],
+    );
   }
 }

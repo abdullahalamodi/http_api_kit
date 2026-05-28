@@ -1,28 +1,28 @@
-// ignore_for_file: library_private_types_in_public_api
-
 import '../../http_api/http_api.dart';
 
-abstract interface class ActionStateModel<T> {
-  ActionStateModel();
+sealed class ActionStateModel<T> {
+  const ActionStateModel();
 
-  static init<T>() => _Init<T>();
-  static success<T>({T? data, ActionType action = ActionType.none}) =>
-      _Success<T>(data: data, action: action);
-  static exception<T>(HttpApiException exception) =>
-      _Error<T>(exception: exception);
+  const factory ActionStateModel.init() = ActionInitState<T>;
+
+  const factory ActionStateModel.success({
+    T? data,
+    ActionType action,
+  }) = ActionSuccessState<T>;
+
+  const factory ActionStateModel.exception(
+    HttpApiException exception,
+  ) = ActionErrorState<T>;
 
   R when<R>({
     required R Function() init,
     required R Function(T? data, ActionType action) success,
     required R Function(HttpApiException exception) error,
-  }) {
-    throw UnimplementedError(
-        'ActionStateModel/when: this method not implemented !');
-  }
+  });
 }
 
-class _Init<T> implements ActionStateModel<T> {
-  _Init();
+final class ActionInitState<T> extends ActionStateModel<T> {
+  const ActionInitState();
 
   @override
   R when<R>({
@@ -32,16 +32,24 @@ class _Init<T> implements ActionStateModel<T> {
   }) {
     return init();
   }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) || other is ActionInitState<T>;
+  }
+
+  @override
+  int get hashCode => T.hashCode;
 }
 
-class _Success<T> implements ActionStateModel<T> {
-  final T? data;
-  final ActionType action;
-
-  _Success({
+final class ActionSuccessState<T> extends ActionStateModel<T> {
+  const ActionSuccessState({
     this.data,
     this.action = ActionType.none,
   });
+
+  final T? data;
+  final ActionType action;
 
   @override
   R when<R>({
@@ -51,12 +59,23 @@ class _Success<T> implements ActionStateModel<T> {
   }) {
     return success(data, action);
   }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is ActionSuccessState<T> &&
+            other.data == data &&
+            other.action == action;
+  }
+
+  @override
+  int get hashCode => Object.hash(data, action);
 }
 
-class _Error<T> extends ActionStateModel<T> {
-  final HttpApiException exception;
+final class ActionErrorState<T> extends ActionStateModel<T> {
+  const ActionErrorState(this.exception);
 
-  _Error({required this.exception});
+  final HttpApiException exception;
 
   @override
   R when<R>({
@@ -66,6 +85,15 @@ class _Error<T> extends ActionStateModel<T> {
   }) {
     return error(exception);
   }
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is ActionErrorState<T> && other.exception == exception;
+  }
+
+  @override
+  int get hashCode => exception.hashCode;
 }
 
 enum ActionType {

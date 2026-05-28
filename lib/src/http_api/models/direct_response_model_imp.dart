@@ -1,6 +1,6 @@
 import 'response_model_interface.dart';
 
-class DirectResponseModelImp implements ResponseModelInterface {
+class DirectResponseModel implements ResponseModelInterface {
   @override
   int get statusCode => 200;
   @override
@@ -10,26 +10,35 @@ class DirectResponseModelImp implements ResponseModelInterface {
   @override
   final dynamic data;
 
-  DirectResponseModelImp(this.data);
+  DirectResponseModel(this.data);
 
-  factory DirectResponseModelImp.fromMap(Map<String, dynamic> map) {
-    return DirectResponseModelImp(map);
+  factory DirectResponseModel.fromMap(Map<String, dynamic> map) {
+    return DirectResponseModel(map);
   }
 
   @override
   String toString() {
-    return 'DirectResponseModelImp( data: $data)';
+    return 'DirectResponseModel(data: $data)';
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is DirectResponseModelImp && other.data == data;
+    return other is DirectResponseModel && other.data == data;
   }
 
   @override
   int get hashCode {
     return data.hashCode;
+  }
+}
+
+@Deprecated('Use DirectResponseModel instead.')
+class DirectResponseModelImp extends DirectResponseModel {
+  DirectResponseModelImp(super.data);
+
+  factory DirectResponseModelImp.fromMap(Map<String, dynamic> map) {
+    return DirectResponseModelImp(map);
   }
 }

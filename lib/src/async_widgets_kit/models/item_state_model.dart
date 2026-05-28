@@ -42,7 +42,7 @@ class ItemStateModel<T> extends BaseStateModel<T?> {
     return ItemStateModel<T>(
       loading: loading ?? this.loading,
       error: error ?? this.error,
-      dataModel: data ?? this.dataModel,
+      dataModel: data ?? dataModel,
       innerloading: innerloading ?? this.innerloading,
     );
   }
