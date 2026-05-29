@@ -109,7 +109,7 @@ class HttpApi implements HttpApiInterface {
         _ => throw UnsupportedError('HTTP method $method is not supported.'),
       };
 
-      logger.logResponse(HttpApiResponseLog(response));
+      // logger.logResponse(HttpApiResponseLog(response));
 
       return _handleResponse(
         response: response,
@@ -135,9 +135,7 @@ class HttpApi implements HttpApiInterface {
     }
 
     final data = json.decode(response.body);
-    final parser =
-        customResponseParser ?? responseParser ?? ResponseModel.fromMap;
-    final responseModel = parser(data);
+    final responseModel = _parseResponseModel(data, customResponseParser);
 
     if (responseModel.success) {
       return dataMapper.call(responseModel);
@@ -159,14 +157,25 @@ class HttpApi implements HttpApiInterface {
   ) {
     try {
       final data = json.decode(response.body);
-      final parser =
-          customResponseParser ?? responseParser ?? ResponseModel.fromMap;
-      final responseModel = parser(data);
+      final responseModel = _parseResponseModel(data, customResponseParser);
       return responseModel.message ?? messages.unKnownServerMessage;
     } on FormatException {
       return messages.unKnownServerMessage;
     } catch (_) {
       return messages.unKnownServerMessage;
+    }
+  }
+
+  ResponseModelInterface _parseResponseModel(
+    dynamic data,
+    ResponseParser? customResponseParser,
+  ) {
+    if (customResponseParser != null) {
+      return customResponseParser.call(data);
+    } else if (responseParser != null) {
+      return responseParser!.call(data);
+    } else {
+      return ResponseModel.fromMap(data);
     }
   }
 

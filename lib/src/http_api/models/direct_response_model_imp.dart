@@ -12,8 +12,12 @@ class DirectResponseModel implements ResponseModelInterface {
 
   DirectResponseModel(this.data);
 
-  factory DirectResponseModel.fromMap(Map<String, dynamic> map) {
-    return DirectResponseModel(map);
+  DirectResponseModel withData(dynamic data) {
+    return DirectResponseModel(data);
+  }
+
+  factory DirectResponseModel.fromMap(dynamic data) {
+    return DirectResponseModel(data);
   }
 
   @override
@@ -38,7 +42,7 @@ class DirectResponseModel implements ResponseModelInterface {
 class DirectResponseModelImp extends DirectResponseModel {
   DirectResponseModelImp(super.data);
 
-  factory DirectResponseModelImp.fromMap(Map<String, dynamic> map) {
-    return DirectResponseModelImp(map);
+  factory DirectResponseModelImp.fromMap(dynamic data) {
+    return DirectResponseModelImp(data);
   }
 }

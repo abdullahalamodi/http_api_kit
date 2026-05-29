@@ -15,30 +15,22 @@ class PaginationWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currentPage = pagination.currentPage;
-    final pagesList = [
-      if (currentPage > 2) 1,
-      if (pagination.previousPage != null) pagination.previousPage,
-      currentPage,
-      if (pagination.nextPage != null) pagination.nextPage,
-      if (pagination.totalPages - 1 > currentPage) pagination.totalPages,
-    ];
+    final window = pagination.window;
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          for (var i = 0; i < pagesList.length; i++) ...[
-            if ((i == pagesList.length - 1) &&
-                pagination.totalPages - 1 > currentPage)
+          for (var i = 0; i < window.pages.length; i++) ...[
+            if (i == window.pages.length - 1 && window.hasTrailingGap)
               const Text(' ... '),
             InkWell(
               splashColor: Colors.transparent,
               hoverColor: Colors.transparent,
               onTap: () {
-                final page = pagesList[i]!;
-                if (page == currentPage) return;
+                final page = window.pages[i];
+                if (page == window.currentPage) return;
                 onChangePage(page);
               },
               child: Container(
@@ -48,23 +40,22 @@ class PaginationWidget extends StatelessWidget {
                 ),
                 margin: const EdgeInsets.symmetric(horizontal: 3),
                 decoration: BoxDecoration(
-                  color: pagesList[i] == currentPage
+                  color: window.pages[i] == window.currentPage
                       ? Colors.orange[100]
                       : Colors.grey[200],
                   borderRadius: BorderRadius.circular(5),
                 ),
                 child: Text(
-                  '${pagesList[i]}',
+                  '${window.pages[i]}',
                   style: Theme.of(context).textTheme.bodyMedium!.copyWith(
-                        color: pagesList[i] == currentPage
+                        color: window.pages[i] == window.currentPage
                             ? Colors.orange
                             : Colors.grey,
                       ),
                 ),
               ),
             ),
-            if (i == 0 && pagesList.length > 2 && currentPage > 2)
-              const Text(' ... '),
+            if (i == 0 && window.hasLeadingGap) const Text(' ... '),
           ],
         ],
       ),

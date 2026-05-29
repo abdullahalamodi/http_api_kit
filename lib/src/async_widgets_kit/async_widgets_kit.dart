@@ -6,6 +6,7 @@ export 'core/pagination_widget.dart';
 export 'core/simple_empty_widget.dart';
 export 'core/simple_error_widget.dart';
 export 'core/simple_loading_widget.dart';
+export 'models/action_state.dart';
 export 'models/action_state_model.dart';
 export 'models/base_state_model.dart';
 export 'models/item_state_model.dart';

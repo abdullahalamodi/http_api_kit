@@ -1,5 +1,9 @@
 import '../../http_api/http_api.dart';
 
+@Deprecated(
+  'Use ActionState<T, A> with an app-owned action enum instead. '
+  'ActionStateModel will stay for compatibility.',
+)
 sealed class ActionStateModel<T> {
   const ActionStateModel();
 
@@ -19,6 +23,12 @@ sealed class ActionStateModel<T> {
     required R Function(T? data, ActionType action) success,
     required R Function(HttpApiException exception) error,
   });
+
+  R? whenOrNull<R>({
+    R? Function()? init,
+    R? Function(T? data, ActionType action)? success,
+    R? Function(HttpApiException exception)? error,
+  });
 }
 
 final class ActionInitState<T> extends ActionStateModel<T> {
@@ -36,6 +46,15 @@ final class ActionInitState<T> extends ActionStateModel<T> {
   @override
   bool operator ==(Object other) {
     return identical(this, other) || other is ActionInitState<T>;
+  }
+
+  @override
+  R? whenOrNull<R>({
+    R? Function()? init,
+    R? Function(T? data, ActionType action)? success,
+    R? Function(HttpApiException exception)? error,
+  }) {
+    return init?.call();
   }
 
   @override
@@ -58,6 +77,15 @@ final class ActionSuccessState<T> extends ActionStateModel<T> {
     required R Function(HttpApiException exception) error,
   }) {
     return success(data, action);
+  }
+
+  @override
+  R? whenOrNull<R>({
+    R? Function()? init,
+    R? Function(T? data, ActionType action)? success,
+    R? Function(HttpApiException exception)? error,
+  }) {
+    return success?.call(data, action);
   }
 
   @override
@@ -87,6 +115,15 @@ final class ActionErrorState<T> extends ActionStateModel<T> {
   }
 
   @override
+  R? whenOrNull<R>({
+    R? Function()? init,
+    R? Function(T? data, ActionType action)? success,
+    R? Function(HttpApiException exception)? error,
+  }) {
+    return error?.call(exception);
+  }
+
+  @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         other is ActionErrorState<T> && other.exception == exception;
@@ -96,6 +133,10 @@ final class ActionErrorState<T> extends ActionStateModel<T> {
   int get hashCode => exception.hashCode;
 }
 
+@Deprecated(
+  'Use an app-owned enum with ActionState<T, A> instead. '
+  'This enum contains app-specific values and is kept for compatibility.',
+)
 enum ActionType {
   login,
   signup,

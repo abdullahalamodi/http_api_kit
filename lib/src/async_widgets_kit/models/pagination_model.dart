@@ -84,4 +84,35 @@ class PaginationModel {
       totalEntries: map['total_entries'] as int,
     );
   }
+
+  PaginationWindow get window {
+    final pages = [
+      if (currentPage > 2) 1,
+      if (previousPage != null) previousPage!,
+      currentPage,
+      if (nextPage != null) nextPage!,
+      if (totalPages - 1 > currentPage) totalPages,
+    ];
+
+    return PaginationWindow(
+      pages: pages,
+      currentPage: currentPage,
+      hasLeadingGap: pages.length > 2 && currentPage > 2,
+      hasTrailingGap: totalPages - 1 > currentPage,
+    );
+  }
+}
+
+class PaginationWindow {
+  const PaginationWindow({
+    required this.pages,
+    required this.currentPage,
+    required this.hasLeadingGap,
+    required this.hasTrailingGap,
+  });
+
+  final List<int> pages;
+  final int currentPage;
+  final bool hasLeadingGap;
+  final bool hasTrailingGap;
 }

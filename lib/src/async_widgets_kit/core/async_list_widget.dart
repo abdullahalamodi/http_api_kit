@@ -50,7 +50,9 @@ class AsyncListWidget<T> extends StatelessWidget {
 
         return Column(
           children: [
-            dataBuilder(dataModel.data),
+            Expanded(
+              child: dataBuilder(dataModel.data),
+            ),
             PaginationWidget(
               pagination: dataModel.pagination,
               onChangePage: onPageChanged!,

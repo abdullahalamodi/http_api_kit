@@ -1,4 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
+import '../../http_api/http_api.dart';
 import '../async_widgets_kit.dart';
 
 class ListStateModel<T> extends BaseStateModel<PaginatedDataModel<T>?> {
@@ -31,6 +32,27 @@ class ListStateModel<T> extends BaseStateModel<PaginatedDataModel<T>?> {
       dataModel: null,
       innerloading: false,
     );
+  }
+
+  ListStateModel<T> withLoading() {
+    return copyWith(
+        loading: true, error: null, dataModel: null, innerloading: false);
+  }
+
+  ListStateModel<T> withData(PaginatedDataModel<T> data) {
+    return copyWith(
+        loading: false, error: null, dataModel: data, innerloading: false);
+  }
+
+  ListStateModel<T> withError(
+    String error, {
+    PaginatedDataModel<T>? data,
+    HttpApiLogger? logger,
+    StackTrace? stackTrace,
+  }) {
+    logger?.logException(error, stackTrace ?? StackTrace.current);
+    return copyWith(
+        loading: false, error: error, dataModel: data, innerloading: false);
   }
 
   @override
