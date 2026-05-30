@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:http/http.dart';
 
-import '../http_api.dart';
+import '../http_kit.dart';
 
 typedef ResponseParser = ResponseModelInterface Function(dynamic json);
 

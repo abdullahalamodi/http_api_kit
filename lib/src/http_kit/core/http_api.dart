@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:http_interceptor/http_interceptor.dart';
 
-import '../http_api.dart';
+import '../http_kit.dart';
 
 class HttpApi implements HttpApiInterface {
   HttpApi({
@@ -176,7 +176,7 @@ class HttpApi implements HttpApiInterface {
     } else if (responseParser != null) {
       return responseParser!.call(data);
     } else {
-      return ResponseModel.fromMap(data);
+      return StandardResponseModel.fromMap(data);
     }
   }
 

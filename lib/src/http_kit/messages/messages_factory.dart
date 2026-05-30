@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-import '../http_api.dart';
-import 'ar_messages.dart';
+import '../http_kit.dart';
 
 class MessagesFactory {
   final String locale;

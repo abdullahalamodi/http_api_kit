@@ -10,4 +10,4 @@ library;
 // Async Widgets Kit exports
 export 'src/async_widgets_kit/async_widgets_kit.dart';
 // HTTP API exports
-export 'src/http_api/http_api.dart';
+export 'src/http_kit/http_kit.dart';

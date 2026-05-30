@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'response_model_interface.dart';
 
-class ResponseModel implements ResponseModelInterface {
+class StandardResponseModel implements ResponseModelInterface {
   @override
   final int statusCode;
   @override
@@ -12,14 +12,14 @@ class ResponseModel implements ResponseModelInterface {
   @override
   final dynamic data;
 
-  ResponseModel({
+  StandardResponseModel({
     required this.statusCode,
     required this.success,
     required this.message,
     required this.data,
   });
 
-  ResponseModel withSuccess(
+  StandardResponseModel withSuccess(
     dynamic data, {
     int? statusCode,
     String? message,
@@ -32,7 +32,7 @@ class ResponseModel implements ResponseModelInterface {
     );
   }
 
-  ResponseModel withError({
+  StandardResponseModel withError({
     int? statusCode,
     String? message,
     dynamic data,
@@ -45,13 +45,13 @@ class ResponseModel implements ResponseModelInterface {
     );
   }
 
-  ResponseModel copyWith({
+  StandardResponseModel copyWith({
     int? statusCode,
     bool? success,
     ValueGetter<String?>? message,
     dynamic data,
   }) {
-    return ResponseModel(
+    return StandardResponseModel(
       statusCode: statusCode ?? this.statusCode,
       success: success ?? this.success,
       message: message != null ? message() : this.message,
@@ -68,8 +68,8 @@ class ResponseModel implements ResponseModelInterface {
     };
   }
 
-  factory ResponseModel.fromMap(Map<String, dynamic> map) {
-    return ResponseModel(
+  factory StandardResponseModel.fromMap(Map<String, dynamic> map) {
+    return StandardResponseModel(
       statusCode: map['status_code']?.toInt() ?? 0,
       success: map['success'] ?? false,
       message: map['message'],
@@ -86,7 +86,7 @@ class ResponseModel implements ResponseModelInterface {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
 
-    return other is ResponseModel &&
+    return other is StandardResponseModel &&
         other.statusCode == statusCode &&
         other.success == success &&
         other.message == message &&
@@ -103,7 +103,7 @@ class ResponseModel implements ResponseModelInterface {
 }
 
 @Deprecated('Use ResponseModel instead.')
-class ResponseModelImp extends ResponseModel {
+class ResponseModelImp extends StandardResponseModel {
   ResponseModelImp({
     required super.statusCode,
     required super.success,

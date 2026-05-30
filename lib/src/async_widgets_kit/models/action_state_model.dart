@@ -1,4 +1,4 @@
-import '../../http_api/http_api.dart';
+import '../../http_kit/http_kit.dart';
 
 @Deprecated(
   'Use ActionState<T, A> with an app-owned action enum instead. '

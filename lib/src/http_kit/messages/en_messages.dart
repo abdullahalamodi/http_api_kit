@@ -1,5 +1,5 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-import '../http_api.dart';
+import '../http_kit.dart';
 
 class EnMessages implements MessagesInterface {
   @override

@@ -1,4 +1,4 @@
-import '../../http_api/http_api.dart';
+import '../../http_kit/http_kit.dart';
 
 typedef ActionSuccessBuilder<T, A extends Object, R> = R Function(
   T? data,
