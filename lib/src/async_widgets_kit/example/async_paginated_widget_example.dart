@@ -2,12 +2,12 @@ import 'package:flutter/widgets.dart';
 
 import '../async_widgets_kit.dart';
 
-class AsyncListWidgetExample extends StatelessWidget {
-  const AsyncListWidgetExample({super.key});
+class AsyncPaginatedWidgetExample extends StatelessWidget {
+  const AsyncPaginatedWidgetExample({super.key});
 
   // you can chagne the state form here by edit data
-  PaginatedListStateModel<String> _data() {
-    return PaginatedListStateModel(
+  PaginatedStateModel<String> _data() {
+    return PaginatedStateModel(
       loading: false,
       error: 'error',
       dataModel: PaginatedDataModel(
@@ -30,7 +30,7 @@ class AsyncListWidgetExample extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AsyncPaginatedListWidget(
+        AsyncPaginatedWidget(
           asyncData: _data(),
           onRetry: () {
             // on error add refresh

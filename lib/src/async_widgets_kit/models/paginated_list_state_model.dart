@@ -1,8 +1,7 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
 import '../async_widgets_kit.dart';
 
-class PaginatedListStateModel<T>
-    extends BaseStateModel<PaginatedDataModel<T>?> {
+class PaginatedStateModel<T> extends BaseStateModel<PaginatedDataModel<T>?> {
   @override
   final bool loading;
 
@@ -18,15 +17,15 @@ class PaginatedListStateModel<T>
   @override
   bool get isRefreshing => innerloading;
 
-  PaginatedListStateModel({
+  PaginatedStateModel({
     required this.loading,
     required this.error,
     required this.dataModel,
     required this.innerloading,
   });
 
-  factory PaginatedListStateModel.init() {
-    return PaginatedListStateModel(
+  factory PaginatedStateModel.init() {
+    return PaginatedStateModel(
       loading: true,
       error: null,
       dataModel: null,
@@ -34,12 +33,12 @@ class PaginatedListStateModel<T>
     );
   }
 
-  PaginatedListStateModel<T> withLoading() {
+  PaginatedStateModel<T> withLoading() {
     return copyWith(
         loading: true, error: null, dataModel: null, innerloading: false);
   }
 
-  PaginatedListStateModel<T> withInnerLoading() {
+  PaginatedStateModel<T> withInnerLoading() {
     if (dataModel == null) return this;
     return copyWith(
       innerloading: true,
@@ -49,7 +48,7 @@ class PaginatedListStateModel<T>
     );
   }
 
-  PaginatedListStateModel<T> withData(PaginatedDataModel<T> dataModel) {
+  PaginatedStateModel<T> withData(PaginatedDataModel<T> dataModel) {
     return copyWith(
       loading: false,
       error: null,
@@ -58,7 +57,7 @@ class PaginatedListStateModel<T>
     );
   }
 
-  PaginatedListStateModel<T> appendData(PaginatedDataModel<T> newDataModel) {
+  PaginatedStateModel<T> appendData(PaginatedDataModel<T> newDataModel) {
     return copyWith(
       loading: false,
       error: null,
@@ -72,7 +71,7 @@ class PaginatedListStateModel<T>
     );
   }
 
-  PaginatedListStateModel<T> withError(
+  PaginatedStateModel<T> withError(
     String error, {
     PaginatedDataModel<T>? data,
   }) {
@@ -81,7 +80,7 @@ class PaginatedListStateModel<T>
   }
 
   @override
-  bool operator ==(covariant PaginatedListStateModel<T> other) {
+  bool operator ==(covariant PaginatedStateModel<T> other) {
     if (identical(this, other)) return true;
 
     return other.loading == loading &&
@@ -100,16 +99,16 @@ class PaginatedListStateModel<T>
 
   @override
   String toString() {
-    return 'PaginatedListStateModel(loading: $loading, error: $error, dataModel: $dataModel, innerloading: $innerloading)';
+    return 'PaginatedStateModel(loading: $loading, error: $error, dataModel: $dataModel, innerloading: $innerloading)';
   }
 
-  PaginatedListStateModel<T> copyWith({
+  PaginatedStateModel<T> copyWith({
     bool? loading,
     String? error,
     PaginatedDataModel<T>? dataModel,
     bool? innerloading,
   }) {
-    return PaginatedListStateModel<T>(
+    return PaginatedStateModel<T>(
       loading: loading ?? this.loading,
       error: error ?? this.error,
       dataModel: dataModel ?? this.dataModel,

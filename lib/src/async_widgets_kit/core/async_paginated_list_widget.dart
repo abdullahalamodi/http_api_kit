@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../async_widgets_kit.dart';
 
-class AsyncPaginatedListWidget<T> extends StatelessWidget {
-  const AsyncPaginatedListWidget({
+class AsyncPaginatedWidget<T> extends StatelessWidget {
+  const AsyncPaginatedWidget({
     super.key,
     required this.asyncData,
     required this.onRetry,
@@ -52,9 +52,7 @@ class AsyncPaginatedListWidget<T> extends StatelessWidget {
     }
     return Column(
       children: [
-        Expanded(
-          child: dataBuilder(dataModel.data),
-        ),
+        dataBuilder(dataModel.data),
         PaginationWidget(
           pagination: dataModel.pagination,
           onChangePage: onPageChanged,
