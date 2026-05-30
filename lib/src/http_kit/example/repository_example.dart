@@ -21,20 +21,29 @@
 //   );
 // });
 
+// // With a custom response model type — no casting needed in dataMapper:
+// //
+// // class MyResponseModel implements ResponseModelInterface {
+// //   final int statusCode;
+// //   final bool success;
+// //   final String? message;
+// //   final dynamic data;
+// //   final PaginationModel? pagination;
+// //   // ...
+// // }
+// //
+// // final _typedApiProvider = Provider.autoDispose<HttpApiInterface<MyResponseModel>>((ref) {
+// //   return HttpApi<MyResponseModel>(
+// //     httpClient: ...,
+// //     config: ...,
+// //     responseParser: (json) => MyResponseModel.fromMap(json),
+// //   );
+// // });
+
 // class RepositotyExample {
 //   final Ref ref;
 
 //   RepositotyExample({required this.ref});
-
-//   Future<ResponseModelInterface> postItem() async {
-//     final response =
-//         await ref.read(_httpApiProvider).post<ResponseModelInterface>(
-//               endPoint: 'YOUR_END_POINT',
-//               body: {'name': 'item1'},
-//               dataMapper: (data) => data,
-//             );
-//     return response;
-//   }
 
 //   Future<String> getItem() async {
 //     final item = await ref.read(_httpApiProvider).getItem<String>(
@@ -47,12 +56,14 @@
 //   Future<PaginatedDataModel<String>> getList() async {
 //     final items = await ref.read(_httpApiProvider).getList(
 //           endPoint: 'YOUR_END_POINT',
-//           // you can here extaract data.responskey [cities, users, ...etc]
-//           // and paginaton key
 //           dataMapper: (response) {
 //             return PaginatedDataModel(
 //               data: response.data['data_response_key'] as List<String>,
-//               pagination: response.data['pagination_response_key'],
+//               pagination: PaginationModel.fromJson(
+//                 Map<String, dynamic>.from(
+//                   response.data['pagination_response_key'],
+//                 ),
+//               ),
 //             );
 //           },
 //         );

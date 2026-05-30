@@ -3,16 +3,17 @@ import 'package:http/http.dart';
 
 import '../http_kit.dart';
 
-typedef ResponseParser = ResponseModelInterface Function(dynamic json);
+typedef ResponseParser<R extends ResponseModelInterface> = R Function(
+    dynamic json);
 
-abstract interface class HttpApiInterface {
+abstract interface class HttpApiInterface<R extends ResponseModelInterface> {
   const HttpApiInterface();
 
   Client get httpClient;
   HttpApiConfig get config;
   Map<String, String> get headers;
   MessagesInterface get messages;
-  ResponseParser? get responseParser;
+  ResponseParser<R>? get responseParser;
   HttpApiLogger get logger;
 
   Future<T> post<T>({
@@ -20,8 +21,8 @@ abstract interface class HttpApiInterface {
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
     required Map<String, dynamic> body,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   });
 
   Future<T> put<T>({
@@ -29,8 +30,8 @@ abstract interface class HttpApiInterface {
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
     required Map<String, dynamic> body,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   });
 
   Future<T> delete<T>({
@@ -38,8 +39,8 @@ abstract interface class HttpApiInterface {
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
     required Map<String, dynamic> body,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   });
 
   Future<T> multipart<T>({
@@ -49,16 +50,16 @@ abstract interface class HttpApiInterface {
     Map<String, String>? requestHeaders,
     required Map<String, String> fields,
     required List<MultipartFile> files,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   });
 
   Future<T> getItem<T>({
     required String endPoint,
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   });
 
   Future<T> getFile<T>({
@@ -66,7 +67,7 @@ abstract interface class HttpApiInterface {
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
     required T Function(Uint8List responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    ResponseParser<R>? customResponseParser,
   });
 
   Future<T> getList<T>({
@@ -74,7 +75,7 @@ abstract interface class HttpApiInterface {
     String? method,
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
-    required final T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required final T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   });
 }

@@ -6,7 +6,7 @@ import 'package:http_interceptor/http_interceptor.dart';
 
 import '../http_kit.dart';
 
-class HttpApi implements HttpApiInterface {
+class HttpApi<R extends ResponseModelInterface> implements HttpApiInterface<R> {
   HttpApi({
     required this.httpClient,
     required this.config,
@@ -34,7 +34,7 @@ class HttpApi implements HttpApiInterface {
   final MessagesInterface messages;
 
   @override
-  final ResponseParser? responseParser;
+  final ResponseParser<R>? responseParser;
 
   @override
   final HttpApiLogger logger;
@@ -75,8 +75,8 @@ class HttpApi implements HttpApiInterface {
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
     Map<String, dynamic>? body,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   }) async {
     try {
       final uri = _getUri(endPoint, parameters: parameters);
@@ -124,8 +124,8 @@ class HttpApi implements HttpApiInterface {
 
   Future<T> _handleResponse<T>({
     required Response response,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   }) async {
     if (!_isSuccessStatusCode(response.statusCode)) {
       throw ServerException(
@@ -154,7 +154,7 @@ class HttpApi implements HttpApiInterface {
 
   String _errorMessageFromResponse(
     Response response,
-    ResponseParser? customResponseParser,
+    ResponseParser<R>? customResponseParser,
   ) {
     try {
       final data = json.decode(response.body);
@@ -167,16 +167,16 @@ class HttpApi implements HttpApiInterface {
     }
   }
 
-  ResponseModelInterface _parseResponseModel(
+  R _parseResponseModel(
     dynamic data,
-    ResponseParser? customResponseParser,
+    ResponseParser<R>? customResponseParser,
   ) {
     if (customResponseParser != null) {
       return customResponseParser.call(data);
     } else if (responseParser != null) {
       return responseParser!.call(data);
     } else {
-      return StandardResponseModel.fromMap(data);
+      return StandardResponseModel.fromMap(data) as R;
     }
   }
 
@@ -185,8 +185,8 @@ class HttpApi implements HttpApiInterface {
     required String endPoint,
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   }) {
     return _sendJsonRequest(
       endPoint: endPoint,
@@ -204,8 +204,8 @@ class HttpApi implements HttpApiInterface {
     String? method,
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   }) {
     return _sendJsonRequest(
       endPoint: endPoint,
@@ -223,8 +223,8 @@ class HttpApi implements HttpApiInterface {
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
     required Map<String, dynamic> body,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   }) {
     return _sendJsonRequest(
       endPoint: endPoint,
@@ -243,8 +243,8 @@ class HttpApi implements HttpApiInterface {
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
     required Map<String, dynamic> body,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   }) {
     return _sendJsonRequest(
       endPoint: endPoint,
@@ -263,7 +263,7 @@ class HttpApi implements HttpApiInterface {
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
     required T Function(Uint8List bodyBytes) dataMapper,
-    ResponseParser? customResponseParser,
+    ResponseParser<R>? customResponseParser,
   }) async {
     try {
       final uri = _getUri(endPoint, parameters: parameters);
@@ -299,8 +299,8 @@ class HttpApi implements HttpApiInterface {
     Map<String, dynamic>? parameters,
     Map<String, String>? requestHeaders,
     required Map<String, dynamic> body,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   }) {
     return _sendJsonRequest(
       endPoint: endPoint,
@@ -321,8 +321,8 @@ class HttpApi implements HttpApiInterface {
     Map<String, String>? requestHeaders,
     required List<MultipartFile> files,
     required Map<String, String> fields,
-    required T Function(ResponseModelInterface responseModel) dataMapper,
-    ResponseParser? customResponseParser,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
   }) async {
     try {
       final uri = _getUri(endPoint, parameters: parameters);

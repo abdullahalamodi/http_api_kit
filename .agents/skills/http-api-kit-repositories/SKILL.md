@@ -12,7 +12,7 @@ Preferred shape:
 class AuthRepository {
   AuthRepository(this._httpApi);
 
-  final HttpApiInterface _httpApi;
+  final HttpApiInterface<StandardResponseModel> _httpApi;
 
   Future<AuthModel> login({
     required AppType appType,
