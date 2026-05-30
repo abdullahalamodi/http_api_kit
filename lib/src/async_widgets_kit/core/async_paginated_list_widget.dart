@@ -28,32 +28,45 @@ class AsyncPaginatedListWidget<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return AsyncWidget(
       asyncData: asyncData,
-      loadingBuilder: loadingWidgetBuilder ?? () => const SimpleLoadingWidget(),
-      errorBuilder: errorWidgetBuilder ??
-          (error) => SimpleErrorWidget(
-                error: error,
-                onRetry: () => onRetry(),
-              ),
-      refreshingBuilder: refreshingBuilder,
-      dataBuilder: (dataModel) {
-        if (dataModel?.data == null || dataModel!.data.isEmpty) {
-          if (emptyWidgetBuilder != null) {
-            return emptyWidgetBuilder!(context);
-          }
-          return const SimpleEmptyWidget();
-        }
-        return Column(
-          children: [
-            Expanded(
-              child: dataBuilder(dataModel.data),
-            ),
-            PaginationWidget(
-              pagination: dataModel.pagination,
-              onChangePage: onPageChanged,
-            ),
-          ],
-        );
-      },
+      loadingBuilder: _buildLoadingWidget,
+      errorBuilder: _buildErrorWidget,
+      refreshingBuilder: _buildRefreshingWidget,
+      dataBuilder: (dataModel) => _buildDataWidget(context, dataModel),
     );
   }
+
+  Widget _buildLoadingWidget() =>
+      (loadingWidgetBuilder ?? () => const SimpleLoadingWidget()).call();
+
+  Widget _buildErrorWidget(String error) => (errorWidgetBuilder ??
+          (e) => SimpleErrorWidget(
+                error: e,
+                onRetry: () => onRetry(),
+              ))
+      .call(error);
+
+  Widget _buildDataWidget(
+      BuildContext context, PaginatedDataModel<T>? dataModel) {
+    if (dataModel?.data == null || dataModel!.data.isEmpty) {
+      return emptyWidgetBuilder?.call(context) ?? const SimpleEmptyWidget();
+    }
+    return Column(
+      children: [
+        Expanded(
+          child: dataBuilder(dataModel.data),
+        ),
+        PaginationWidget(
+          pagination: dataModel.pagination,
+          onChangePage: onPageChanged,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRefreshingWidget(BuildContext context, Widget child) =>
+      refreshingBuilder?.call(context, child) ??
+      SimpleRefreshWidget(
+        isRefreshing: asyncData.isRefreshing,
+        child: child,
+      );
 }

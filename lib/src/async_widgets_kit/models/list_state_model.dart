@@ -37,6 +37,16 @@ class ListStateModel<T> extends BaseStateModel<List<T>?> {
         loading: true, error: null, dataModel: null, innerloading: false);
   }
 
+  ListStateModel<T> withInnerLoading() {
+    if (dataModel == null) return this;
+    return copyWith(
+      innerloading: true,
+      loading: false,
+      error: null,
+      dataModel: null,
+    );
+  }
+
   ListStateModel<T> withData(List<T> data) {
     return copyWith(
       loading: false,

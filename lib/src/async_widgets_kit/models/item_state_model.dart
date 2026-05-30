@@ -37,6 +37,16 @@ class ItemStateModel<T> extends BaseStateModel<T?> {
     return copyWith(loading: true, error: null, data: null);
   }
 
+  ItemStateModel<T> withInnerLoading() {
+    if (dataModel == null) return this;
+    return copyWith(
+      innerloading: true,
+      loading: false,
+      error: null,
+      data: null,
+    );
+  }
+
   ItemStateModel<T> withData(T data) {
     return copyWith(loading: false, error: null, data: data);
   }

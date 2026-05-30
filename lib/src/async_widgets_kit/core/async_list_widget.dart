@@ -26,22 +26,34 @@ class AsyncListWidget<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     return AsyncWidget(
       asyncData: asyncData,
-      loadingBuilder: loadingWidgetBuilder ?? () => const SimpleLoadingWidget(),
-      errorBuilder: errorWidgetBuilder ??
-          (error) => SimpleErrorWidget(
-                error: error,
-                onRetry: () => onRetry(),
-              ),
-      refreshingBuilder: refreshingBuilder,
-      dataBuilder: (data) {
-        if (data == null || data.isEmpty) {
-          if (emptyWidgetBuilder != null) {
-            return emptyWidgetBuilder!(context);
-          }
-          return const SimpleEmptyWidget();
-        }
-        return dataBuilder(data);
-      },
+      loadingBuilder: _buildLoadingWidget,
+      errorBuilder: _buildErrorWidget,
+      refreshingBuilder: _buildRefreshingWidget,
+      dataBuilder: (data) => _buildDataWidget(context, data),
     );
   }
+
+  Widget _buildLoadingWidget() =>
+      (loadingWidgetBuilder ?? () => const SimpleLoadingWidget()).call();
+
+  Widget _buildErrorWidget(String error) => (errorWidgetBuilder ??
+          (e) => SimpleErrorWidget(
+                error: e,
+                onRetry: () => onRetry(),
+              ))
+      .call(error);
+
+  Widget _buildDataWidget(BuildContext context, List<T>? data) {
+    if (data == null || data.isEmpty) {
+      return emptyWidgetBuilder?.call(context) ?? const SimpleEmptyWidget();
+    }
+    return dataBuilder(data);
+  }
+
+  Widget _buildRefreshingWidget(BuildContext context, Widget child) =>
+      refreshingBuilder?.call(context, child) ??
+      SimpleRefreshWidget(
+        isRefreshing: asyncData.isRefreshing,
+        child: child,
+      );
 }

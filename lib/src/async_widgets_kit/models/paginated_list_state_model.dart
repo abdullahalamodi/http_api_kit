@@ -39,11 +39,21 @@ class PaginatedListStateModel<T>
         loading: true, error: null, dataModel: null, innerloading: false);
   }
 
-  PaginatedListStateModel<T> withData(PaginatedDataModel<T> newDataModel) {
+  PaginatedListStateModel<T> withInnerLoading() {
+    if (dataModel == null) return this;
+    return copyWith(
+      innerloading: true,
+      loading: false,
+      error: null,
+      dataModel: null,
+    );
+  }
+
+  PaginatedListStateModel<T> withData(PaginatedDataModel<T> dataModel) {
     return copyWith(
       loading: false,
       error: null,
-      dataModel: newDataModel,
+      dataModel: dataModel,
       innerloading: false,
     );
   }

@@ -21,20 +21,25 @@ class AsyncWidget<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (asyncData.loading) {
-      return loadingBuilder.call();
+      return _buildLoadingWidget();
     } else if (asyncData.error != null) {
-      return errorBuilder.call(asyncData.error!);
+      return _buildErrorWidget(asyncData.error!);
     }
 
-    final child = dataBuilder.call(asyncData.dataModel);
-    if (!asyncData.isRefreshing) {
-      return child;
-    }
-
-    if (refreshingBuilder != null) {
-      return refreshingBuilder!(context, child);
+    final child = _buildDataWidget();
+    if (asyncData.isRefreshing) {
+      return _buildRefreshingWidget(context, child);
     }
 
     return child;
   }
+
+  Widget _buildLoadingWidget() => loadingBuilder.call();
+
+  Widget _buildErrorWidget(String error) => errorBuilder.call(error);
+
+  Widget _buildDataWidget() => dataBuilder.call(asyncData.dataModel);
+
+  Widget _buildRefreshingWidget(BuildContext context, Widget child) =>
+      refreshingBuilder?.call(context, child) ?? child;
 }

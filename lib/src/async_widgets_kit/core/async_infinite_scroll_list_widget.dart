@@ -19,7 +19,7 @@ class AsyncInfiniteScrollListWidget<T> extends StatefulWidget {
   });
 
   final BaseStateModel<PaginatedDataModel<T>?> asyncData;
-  final Widget Function(BuildContext context, T item) itemBuilder;
+  final Widget Function(T item) itemBuilder;
   final void Function(int page) onLoadMore;
   final VoidCallback onRetry;
   final bool Function(PaginationModel pagination)? hasMore;
@@ -75,17 +75,11 @@ class _AsyncInfiniteScrollListWidgetState<T>
   @override
   Widget build(BuildContext context) {
     if (widget.asyncData.loading) {
-      return (widget.loadingWidgetBuilder ?? () => const SimpleLoadingWidget())
-          .call();
+      return _buildLoadingWidget();
     }
 
-    if (widget.asyncData.error != null && !widget.asyncData.innerloading) {
-      return (widget.errorWidgetBuilder ??
-              (error) => SimpleErrorWidget(
-                    error: error,
-                    onRetry: () => widget.onRetry(),
-                  ))
-          .call(widget.asyncData.error!);
+    if (widget.asyncData.error != null) {
+      return _buildErrorWidget(widget.asyncData.error!);
     }
 
     final data = widget.asyncData.dataModel?.data ?? [];
@@ -94,12 +88,29 @@ class _AsyncInfiniteScrollListWidgetState<T>
             const SimpleEmptyWidget())
         : _buildListView(data);
 
-    if (widget.asyncData.innerloading && widget.refreshingBuilder != null) {
-      return widget.refreshingBuilder!(context, child);
+    if (widget.asyncData.innerloading) {
+      return _buildRefreshingWidget(context, child);
     }
 
     return child;
   }
+
+  Widget _buildLoadingWidget() =>
+      (widget.loadingWidgetBuilder ?? () => const SimpleLoadingWidget()).call();
+
+  Widget _buildErrorWidget(String error) => (widget.errorWidgetBuilder ??
+          (e) => SimpleErrorWidget(
+                error: e,
+                onRetry: () => widget.onRetry(),
+              ))
+      .call(error);
+
+  Widget _buildRefreshingWidget(BuildContext context, Widget child) =>
+      widget.refreshingBuilder?.call(context, child) ??
+      SimpleRefreshWidget(
+        isRefreshing: widget.asyncData.innerloading,
+        child: child,
+      );
 
   Widget _buildListView(List<T> data) {
     final pagination = widget.asyncData.dataModel?.pagination;
@@ -110,7 +121,7 @@ class _AsyncInfiniteScrollListWidgetState<T>
       itemCount: data.length + (more ? 1 : 0),
       itemBuilder: (context, index) {
         if (index < data.length) {
-          return widget.itemBuilder(context, data[index]);
+          return widget.itemBuilder(data[index]);
         }
         return (widget.loadingMoreWidgetBuilder ??
                 () => const Padding(
