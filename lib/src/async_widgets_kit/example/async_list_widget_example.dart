@@ -6,8 +6,8 @@ class AsyncListWidgetExample extends StatelessWidget {
   const AsyncListWidgetExample({super.key});
 
   // you can chagne the state form here by edit data
-  ListStateModel<String> _data() {
-    return ListStateModel(
+  PaginatedListStateModel<String> _data() {
+    return PaginatedListStateModel(
       loading: false,
       error: 'error',
       dataModel: PaginatedDataModel(
@@ -30,7 +30,7 @@ class AsyncListWidgetExample extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AsyncListWidget(
+        AsyncPaginatedListWidget(
           asyncData: _data(),
           onRetry: () {
             // on error add refresh

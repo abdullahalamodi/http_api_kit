@@ -1,5 +1,4 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-import '../../http_api/http_api.dart';
 import '../async_widgets_kit.dart';
 
 class ItemStateModel<T> extends BaseStateModel<T?> {
@@ -45,10 +44,7 @@ class ItemStateModel<T> extends BaseStateModel<T?> {
   ItemStateModel<T> withError(
     String error, {
     T? data,
-    HttpApiLogger? logger,
-    StackTrace? stackTrace,
   }) {
-    logger?.logException(error, stackTrace ?? StackTrace.current);
     return copyWith(loading: false, error: error, data: data);
   }
 

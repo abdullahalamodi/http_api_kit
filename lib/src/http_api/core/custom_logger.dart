@@ -23,4 +23,10 @@ class CustomLogger {
       talker.info(data);
     }
   }
+
+  static void logException(Object error, StackTrace stackTrace) {
+    if (kDebugMode && _enableTagLogger) {
+      talker.handle(error, stackTrace, 'CustomLogger Exception');
+    }
+  }
 }

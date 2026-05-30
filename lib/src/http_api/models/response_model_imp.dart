@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../core/http_api_logger.dart';
 import 'response_model_interface.dart';
 
 class ResponseModel implements ResponseModelInterface {
@@ -37,11 +36,7 @@ class ResponseModel implements ResponseModelInterface {
     int? statusCode,
     String? message,
     dynamic data,
-    HttpApiLogger? logger,
-    StackTrace? stackTrace,
   }) {
-    logger?.logException(message ?? 'Unknown error',
-        stackTrace ?? StackTrace.current);
     return copyWith(
       statusCode: statusCode,
       success: false,

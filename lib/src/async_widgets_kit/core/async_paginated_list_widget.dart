@@ -2,21 +2,23 @@ import 'package:flutter/material.dart';
 
 import '../async_widgets_kit.dart';
 
-class AsyncListWidget<T> extends StatelessWidget {
-  const AsyncListWidget({
+class AsyncPaginatedListWidget<T> extends StatelessWidget {
+  const AsyncPaginatedListWidget({
     super.key,
     required this.asyncData,
     required this.onRetry,
     required this.dataBuilder,
+    required this.onPageChanged,
     this.emptyWidgetBuilder,
     this.loadingWidgetBuilder,
     this.errorWidgetBuilder,
     this.refreshingBuilder,
   });
 
-  final BaseStateModel<List<T>?> asyncData;
+  final BaseStateModel<PaginatedDataModel<T>?> asyncData;
   final VoidCallback onRetry;
   final Widget Function(List<T> data) dataBuilder;
+  final void Function(int page) onPageChanged;
   final Widget Function(BuildContext context)? emptyWidgetBuilder;
   final Widget Function()? loadingWidgetBuilder;
   final Widget Function(String error)? errorWidgetBuilder;
@@ -33,14 +35,24 @@ class AsyncListWidget<T> extends StatelessWidget {
                 onRetry: () => onRetry(),
               ),
       refreshingBuilder: refreshingBuilder,
-      dataBuilder: (data) {
-        if (data == null || data.isEmpty) {
+      dataBuilder: (dataModel) {
+        if (dataModel?.data == null || dataModel!.data.isEmpty) {
           if (emptyWidgetBuilder != null) {
             return emptyWidgetBuilder!(context);
           }
           return const SimpleEmptyWidget();
         }
-        return dataBuilder(data);
+        return Column(
+          children: [
+            Expanded(
+              child: dataBuilder(dataModel.data),
+            ),
+            PaginationWidget(
+              pagination: dataModel.pagination,
+              onChangePage: onPageChanged,
+            ),
+          ],
+        );
       },
     );
   }

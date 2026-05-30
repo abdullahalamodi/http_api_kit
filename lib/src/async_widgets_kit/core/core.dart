@@ -1,5 +1,7 @@
+export 'async_infinite_scroll_list_widget.dart';
 export 'async_item_widget.dart';
 export 'async_list_widget.dart';
+export 'async_paginated_list_widget.dart';
 export 'async_widget.dart';
 export 'pagination_widget.dart';
 export 'simple_empty_widget.dart';

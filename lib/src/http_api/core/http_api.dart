@@ -133,6 +133,7 @@ class HttpApi implements HttpApiInterface {
         statusCode: response.statusCode,
       );
     }
+    logger.logResponse(HttpApiResponseLog(response));
 
     final data = json.decode(response.body);
     final responseModel = _parseResponseModel(data, customResponseParser);

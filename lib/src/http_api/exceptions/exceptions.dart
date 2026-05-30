@@ -1,4 +1,5 @@
 export 'data_format_exception.dart';
+export 'exception_ext.dart';
 export 'http_api_exception.dart';
 export 'internet_exception.dart';
 export 'server_exception.dart';
