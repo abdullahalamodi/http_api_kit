@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http_interceptor/http_interceptor.dart';
 import 'package:talker_flutter/talker_flutter.dart';
 
@@ -11,25 +12,28 @@ class TalkerHttpApiLoggerAdapter implements HttpApiLogger {
   final Talker _talker;
 
   @override
-  void logRequest(HttpApiRequestLog log) {
-    _talker.logCustom(_TalkerHttpRequestLog(log));
+  void logRequest(HttpApiRequestLog req) {
+    if (kDebugMode) _talker.logCustom(_TalkerHttpRequestLog(req));
   }
 
   @override
-  void logResponse(HttpApiResponseLog log) {
-    _talker.logCustom(_TalkerHttpResponseLog(log.response));
+  void logResponse(HttpApiResponseLog res) {
+    if (kDebugMode) _talker.logCustom(_TalkerHttpResponseLog(res.response));
   }
 
   @override
   void logException(Object error, StackTrace stackTrace) {
-    _talker.handle(error, stackTrace, 'http api');
+    _talker.handle(error, stackTrace, 'TalkerHttpApiLoggerAdapter');
   }
 }
 
+/// -----
 @Deprecated('Use TalkerHttpApiLoggerAdapter instead.')
 class TalkerHttpApiLogger extends TalkerHttpApiLoggerAdapter {
   TalkerHttpApiLogger({super.talker});
 }
+
+/// ----
 
 const encoder = JsonEncoder.withIndent('  ');
 

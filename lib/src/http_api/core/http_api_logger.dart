@@ -1,11 +1,14 @@
+import 'dart:developer';
+
+import 'package:flutter/foundation.dart';
 import 'package:http_interceptor/http_interceptor.dart';
 
 abstract interface class HttpApiLogger {
   const HttpApiLogger();
 
-  void logRequest(HttpApiRequestLog log);
+  void logRequest(HttpApiRequestLog req);
 
-  void logResponse(HttpApiResponseLog log);
+  void logResponse(HttpApiResponseLog res);
 
   void logException(Object error, StackTrace stackTrace);
 }
@@ -14,13 +17,19 @@ class NoopHttpApiLogger implements HttpApiLogger {
   const NoopHttpApiLogger();
 
   @override
-  void logRequest(HttpApiRequestLog log) {}
+  void logRequest(HttpApiRequestLog req) {
+    if (kDebugMode) log(req.uri.toString());
+  }
 
   @override
-  void logResponse(HttpApiResponseLog log) {}
+  void logResponse(HttpApiResponseLog res) {
+    if (kDebugMode) log(res.response.toString());
+  }
 
   @override
-  void logException(Object error, StackTrace stackTrace) {}
+  void logException(Object error, StackTrace stackTrace) {
+    log('$error <-> <-> $stackTrace');
+  }
 }
 
 class HttpApiRequestLog {
