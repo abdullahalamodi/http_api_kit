@@ -1,35 +1,45 @@
 # http_api_kit Repository Methods
 
-Use this skill when writing repository functions that call `HttpApi` methods from `package:http_api_kit/http_api_kit.dart`, especially `post`, `getItem`, `getList`, `put`, `delete`, `multipart`, and `getFile`.
+Use this skill when writing repository functions that call `HttpApi` methods from `package:http_api_kit/http_api_kit.dart`. The repository layer wraps `HttpApiInterface<StandardResponseModel>` and returns typed domain models to providers and views.
 
 ## Goal
 
-Repository methods should hide HTTP details from the app layer and return typed models. UI and providers should not parse response maps directly.
+Repositories own HTTP calls, endpoint construction, and response mapping. They hide JSON parsing and backend shapes from the rest of the app. UI, providers, and widgets must not parse response maps directly.
 
 Preferred shape:
 
 ```dart
-class AuthRepository {
-  AuthRepository(this._httpApi);
+class UserRepository {
+  UserRepository(this._httpApi);
 
   final HttpApiInterface<StandardResponseModel> _httpApi;
 
-  Future<AuthModel> login({
-    required AppType appType,
-    required Map<String, dynamic> body,
-  }) {
-    return _httpApi.post<AuthModel>(
-      endPoint: EndPoints.login(appType.endpointPrefix),
-      body: body,
-      dataMapper: (model) {
-        return AuthModel.fromMap(
-          Map<String, dynamic>.from(model.data),
+  Future<UserModel> showUser(String id) {
+    return _httpApi.getItem<UserModel>(
+      endPoint: '/users/$id',
+      dataMapper: (response) {
+        return UserModel.fromMap(
+          Map<String, dynamic>.from(response.data),
         );
       },
     );
   }
 }
 ```
+
+## Naming Convention
+
+| Method | Repository method | Purpose |
+|---|---|---|
+| `getItem` | `show` + noun | Single resource lookup |
+| `getList` | `list` + plural noun | Paginated collection |
+| `post` | `add`, `create`, `login`, `register` | Create or command |
+| `put` | `update`, `edit` | Full or partial update |
+| `delete` | `delete`, `remove` | Remove resource |
+| `multipart` | `upload` + noun | File upload |
+| `getFile` | `download` + noun | File download |
+
+Examples: `showUser`, `listUsers`, `addUser`, `updateUser`, `deleteUser`, `uploadAvatar`, `downloadReport`.
 
 ## Imports
 
@@ -39,221 +49,178 @@ Use the package barrel in app code:
 import 'package:http_api_kit/http_api_kit.dart';
 ```
 
-Use focused imports only when the app intentionally wants a smaller public surface:
+Do not import from `lib/src/` paths in application code.
 
-```dart
-import 'package:http_api_kit/http_api.dart';
-```
-
-## POST Example
+## POST — Create / Command
 
 Use `post<T>` for commands that send JSON and return a typed result.
 
 ```dart
-Future<AuthModel> login({
-  required AppType appType,
-  required LoginBody body,
-}) async {
-  final response = await _httpApi.post<AuthModel>(
-    endPoint: EndPoints.login(appType.endpointPrefix),
+Future<UserModel> addUser(CreateUserBody body) {
+  return _httpApi.post<UserModel>(
+    endPoint: '/users',
     body: body.toMap(),
-    dataMapper: (model) {
-      final data = Map<String, dynamic>.from(model.data);
-      return AuthModel.fromMap(data);
+    dataMapper: (response) {
+      return UserModel.fromMap(
+        Map<String, dynamic>.from(response.data),
+      );
     },
   );
-
-  return response;
 }
 ```
 
 Use `requestHeaders` for per-call overrides:
 
 ```dart
-Future<AuthModel> loginAsGuest({
-  required Map<String, dynamic> body,
+Future<UserModel> login({
+  required Map<String, dynamic> credentials,
+  required String token,
 }) {
-  return _httpApi.post<AuthModel>(
-    endPoint: EndPoints.guestLogin,
+  return _httpApi.post<UserModel>(
+    endPoint: '/auth/login',
     requestHeaders: {
-      'X-Guest-Flow': 'true',
+      'X-Device-Token': token,
     },
-    body: body,
-    dataMapper: (model) {
-      return AuthModel.fromMap(
-        Map<String, dynamic>.from(model.data),
+    body: credentials,
+    dataMapper: (response) {
+      return UserModel.fromMap(
+        Map<String, dynamic>.from(response.data),
       );
     },
   );
 }
 ```
 
-Tips:
+Clean code tips:
 
-- Always return typed domain models from repositories, not `ResponseModelInterface`.
-- Prefer DTO/body objects with `toMap()` over inline body maps when the body has more than two fields.
-- Use `Map<String, dynamic>.from(model.data)` before passing data into model factories.
-- Keep endpoint construction in `EndPoints`, not inside provider or widget code.
+- Return typed domain models, never `ResponseModelInterface`.
+- Prefer DTO/body objects with `toMap()` over raw maps when the body has more than two fields.
+- Keep endpoint strings in a dedicated `EndPoints` class, not inline in repositories.
+- Copy `response.data` with `Map<String, dynamic>.from` before passing to model factories.
 
 Warnings:
 
-- Do not access `model.data` as `dynamic` in multiple places. Convert once at the mapper boundary.
-- Do not catch `HttpApiException` in repositories unless the repository can add useful domain context. Let providers catch and convert to UI state.
-- Do not place UI messages, snackbars, navigation, or Riverpod state changes inside repository methods.
+- Do not access `response.data` as `dynamic` in multiple places. Convert once at the mapper boundary.
+- Do not catch `HttpApiException` in repositories. Let providers catch and translate to UI state.
+- Do not trigger navigation, snackbars, or Riverpod state changes inside repository methods.
 
-## GET Item Example
+## GET Item — Single Resource
 
-Use `getItem<T>` for a single resource or lookup result.
+Use `getItem<T>` for one resource or a lookup result.
 
 ```dart
-Future<AttendanceResultModel> scanReservation(
-  ScanFamily scanFamily,
-) async {
-  final response = await _httpApi.getItem<AttendanceResultModel>(
-    endPoint: EndPoints.lookupBarcode,
-    parameters: {
-      'number': scanFamily.number,
-      'type': _scanTypeParam(scanFamily.type),
-    },
-    dataMapper: (model) {
-      final data = Map<String, dynamic>.from(model.data);
-      final reservation = Map<String, dynamic>.from(data['reservation']);
-
-      final reservableType = reservation['reservable_type'] as String;
-      final activityType = reservableType == 'Card'
-          ? ActivityType.cards
-          : ActivityType.events;
-
-      final reservable = Map<String, dynamic>.from(
-        reservation['reservable'],
+Future<UserModel> showUser(String id) {
+  return _httpApi.getItem<UserModel>(
+    endPoint: '/users/$id',
+    dataMapper: (response) {
+      return UserModel.fromMap(
+        Map<String, dynamic>.from(response.data),
       );
-      reservable['type'] = activityType.name;
-
-      reservation['reservable'] = ActivityModel.fromMapWithType(
-        reservable,
-        activityType,
-      );
-
-      final applicant = reservation['applicant'];
-      if (applicant != null) {
-        reservation['applicant'] = ApplicantModel.fromMap(
-          Map<String, dynamic>.from(applicant),
-        );
-      }
-
-      return AttendanceResultModel.fromMap(reservation);
     },
   );
-
-  return response;
 }
 ```
 
-Tips:
+With query parameters:
 
-- Use local variables with meaningful names for nested maps.
-- Convert nested maps before mutating them.
-- Normalize backend-specific fields inside the mapper, so the rest of the app receives clean models.
+```dart
+Future<UserModel> showUserByEmail(String email) {
+  return _httpApi.getItem<UserModel>(
+    endPoint: '/users/lookup',
+    parameters: {'email': email},
+    dataMapper: (response) {
+      return UserModel.fromMap(
+        Map<String, dynamic>.from(response.data),
+      );
+    },
+  );
+}
+```
+
+Clean code tips:
+
+- Name parameters with meaningful local variables when building complex query strings.
+- Keep parameter-key constants (`'email'`, `'status'`) in a single place, not scattered across methods.
 
 Warnings:
 
-- Avoid mutating `model.data` directly. Copy into a new map first.
-- Avoid null assertions on backend fields unless the API contract guarantees them.
-- If a backend key can be absent, handle it before calling `fromMap`.
+- Do not use `!` assertion on `response.data` unless the API contract guarantees it.
+- Handle absent backend keys before calling `fromMap`.
 
-## GET List With Pagination Example
+## GET List — Paginated Collection
 
-Use `getList<PaginatedDataModel<T>>` when the backend returns data plus pagination metadata.
+Use `getList<T>` for paginated endpoints. The repository returns a `PaginatedDataModel<T>` so the provider knows about current page and total pages.
 
 ```dart
-Future<PaginatedDataModel<ActivityReservationModel>> getActivityReservations({
-  required ReservationsFamily family,
-  required FilterModel filters,
-}) async {
-  final response =
-      await _httpApi.getList<PaginatedDataModel<ActivityReservationModel>>(
-    endPoint: EndPoints.activityReservations,
+Future<PaginatedDataModel<UserModel>> listUsers({
+  int page = 1,
+  int limit = 10,
+  String? statusFilter,
+}) {
+  return _httpApi.getList<PaginatedDataModel<UserModel>>(
+    endPoint: '/users',
     parameters: {
-      'limit': filters.limit,
-      'page': filters.page,
-      'filters[reservable_id]': family.reservableId,
-      'filters[reservable_type]': family.reservableType.reservationsType,
-      ...filters.customFilters,
+      'page': page,
+      'limit': limit,
+      if (statusFilter != null) 'filter[status]': statusFilter,
     },
-    dataMapper: (model) {
-      final data = Map<String, dynamic>.from(model.data);
-      final items = List<ActivityReservationModel>.from(
-        (data[ResponseKeys.reservations] as List).map(
-          (item) {
-            return ActivityReservationModel.fromMap(
-              Map<String, dynamic>.from(item),
-            );
-          },
+    dataMapper: (response) {
+      final data = Map<String, dynamic>.from(response.data);
+      final items = List<UserModel>.from(
+        (data['users'] as List).map(
+          (item) => UserModel.fromMap(
+            Map<String, dynamic>.from(item),
+          ),
         ),
       );
-
       final pagination = PaginationModel.fromJson(
-        Map<String, dynamic>.from(data[ResponseKeys.pagination]),
+        Map<String, dynamic>.from(data['pagination']),
       );
-
       return PaginatedDataModel(
         data: items,
         pagination: pagination,
       );
     },
   );
-
-  return response;
 }
 ```
 
-For reusable list parsing, extract helpers:
+Extract a reusable pagination helper when multiple endpoints share the same shape:
 
 ```dart
-PaginatedDataModel<T> mapPaginatedData<T>({
-  required ResponseModelInterface model,
+PaginatedDataModel<T> _mapPaginated<T>({
+  required dynamic responseData,
   required String itemsKey,
   required T Function(Map<String, dynamic> map) fromMap,
 }) {
-  final data = Map<String, dynamic>.from(model.data);
-
+  final data = Map<String, dynamic>.from(responseData);
   final items = List<T>.from(
     (data[itemsKey] as List).map(
       (item) => fromMap(Map<String, dynamic>.from(item)),
     ),
   );
-
   final pagination = PaginationModel.fromJson(
-    Map<String, dynamic>.from(data[ResponseKeys.pagination]),
+    Map<String, dynamic>.from(data['pagination']),
   );
-
-  return PaginatedDataModel<T>(
-    data: items,
-    pagination: pagination,
-  );
+  return PaginatedDataModel(data: items, pagination: pagination);
 }
 ```
 
 Usage:
 
 ```dart
-Future<PaginatedDataModel<ActivityModel>> getActivities({
-  required ActivityType type,
-  required FilterModel filters,
+Future<PaginatedDataModel<UserModel>> listUsers({
+  int page = 1,
+  int limit = 10,
 }) {
-  return _httpApi.getList<PaginatedDataModel<ActivityModel>>(
-    endPoint: EndPoints.activities,
-    parameters: {
-      'type': type.name,
-      'page': filters.page,
-      'limit': filters.limit,
-      ...filters.customFilters,
-    },
-    dataMapper: (model) {
-      return mapPaginatedData<ActivityModel>(
-        model: model,
-        itemsKey: ResponseKeys.activities,
-        fromMap: ActivityModel.fromMap,
+  return _httpApi.getList<PaginatedDataModel<UserModel>>(
+    endPoint: '/users',
+    parameters: {'page': page, 'limit': limit},
+    dataMapper: (response) {
+      return _mapPaginated<UserModel>(
+        responseData: response.data,
+        itemsKey: 'users',
+        fromMap: UserModel.fromMap,
       );
     },
   );
@@ -262,114 +229,138 @@ Future<PaginatedDataModel<ActivityModel>> getActivities({
 
 Warnings:
 
-- Do not return `List<T>` from a paginated endpoint if the UI needs `PaginationModel`.
-- Do not let providers parse `PaginationModel`. Keep response-shape knowledge in repositories.
-- Be explicit about backend keys such as `ResponseKeys.reservations` and `ResponseKeys.pagination`.
+- Do not return `List<T>` when the UI needs pagination metadata.
+- Do not let providers parse `PaginationModel`. Keep response-shape knowledge in the repository.
+- Be explicit about backend keys (`'users'`, `'pagination'`). Use constants when a key appears in multiple repositories.
 
-## PUT And DELETE Examples
+## PUT — Update
 
 Use `put<T>` for updates:
 
 ```dart
-Future<ActivityModel> updateActivity({
+Future<UserModel> updateUser({
   required String id,
-  required ActivityUpdateBody body,
+  required UpdateUserBody body,
 }) {
-  return _httpApi.put<ActivityModel>(
-    endPoint: EndPoints.activity(id),
+  return _httpApi.put<UserModel>(
+    endPoint: '/users/$id',
     body: body.toMap(),
-    dataMapper: (model) {
-      return ActivityModel.fromMap(
-        Map<String, dynamic>.from(model.data),
+    dataMapper: (response) {
+      return UserModel.fromMap(
+        Map<String, dynamic>.from(response.data),
       );
     },
   );
 }
 ```
 
+## DELETE — Remove Resource
+
 Use `delete<T>` for delete commands:
 
 ```dart
-Future<void> deleteActivity(String id) {
+Future<void> deleteUser(String id) {
   return _httpApi.delete<void>(
-    endPoint: EndPoints.activity(id),
+    endPoint: '/users/$id',
     body: const {},
     dataMapper: (_) {},
   );
 }
 ```
 
-Warning:
+If the backend returns the deleted object, map it:
 
-- Keep delete response mapping explicit. If the backend returns deleted data, map it. If not, return `void`.
+```dart
+Future<UserModel> deleteUser(String id) {
+  return _httpApi.delete<UserModel>(
+    endPoint: '/users/$id',
+    body: const {},
+    dataMapper: (response) {
+      return UserModel.fromMap(
+        Map<String, dynamic>.from(response.data),
+      );
+    },
+  );
+}
+```
 
-## Multipart Example
+Warnings:
+
+- Be explicit about the return type. Return `void` when the backend sends no meaningful data.
+
+## Multipart — File Upload
 
 Use `multipart<T>` for file uploads.
 
 ```dart
-Future<UploadResultModel> uploadAttachment({
-  required String reservationId,
+Future<UploadResultModel> uploadAvatar({
+  required String userId,
   required MultipartFile file,
 }) {
   return _httpApi.multipart<UploadResultModel>(
-    endPoint: EndPoints.attachments,
-    parameters: {
-      'reservation_id': reservationId,
-    },
-    fields: {
-      'source': 'mobile',
-    },
+    endPoint: '/users/$userId/avatar',
+    fields: {'source': 'mobile'},
     files: [file],
-    dataMapper: (model) {
+    dataMapper: (response) {
       return UploadResultModel.fromMap(
-        Map<String, dynamic>.from(model.data),
+        Map<String, dynamic>.from(response.data),
       );
     },
   );
 }
 ```
 
-Tips:
+Clean code tips:
 
-- Put scalar upload fields in `fields`.
+- Put scalar metadata in `fields`.
 - Put query parameters in `parameters`.
 - Pass all files through `files`.
 
-## Error Handling Boundary
+## GET File — Download
 
-Recommended repository behavior:
+Use `getFile<T>` for binary downloads.
 
 ```dart
-Future<ActivityModel> getActivity(String id) {
-  return _httpApi.getItem<ActivityModel>(
-    endPoint: EndPoints.activity(id),
-    dataMapper: (model) {
-      return ActivityModel.fromMap(
-        Map<String, dynamic>.from(model.data),
+Future<Uint8List> downloadReport(String reportId) {
+  return _httpApi.getFile<Uint8List>(
+    endPoint: '/reports/$reportId/download',
+    dataMapper: (bytes) => bytes,
+  );
+}
+```
+
+## Error Handling Boundary
+
+Repositories should not catch errors. Let the exception propagate to the provider:
+
+```dart
+// Repository — do not catch
+Future<UserModel> showUser(String id) {
+  return _httpApi.getItem<UserModel>(
+    endPoint: '/users/$id',
+    dataMapper: (response) {
+      return UserModel.fromMap(
+        Map<String, dynamic>.from(response.data),
       );
     },
   );
 }
 ```
 
-Recommended provider behavior:
-
 ```dart
+// Provider — catch and translate to UI state
 try {
-  final data = await ref.read(activitiesRepoProvider).getActivity(id);
-  state = state.copyWith(loading: false, error: null, data: data);
+  final user = await ref.read(userRepoProvider).showUser(id);
+  state = state.withData(user);
 } catch (e, s) {
-  CustomLogger.exceptionLogger(error: e, stackTrace: s);
+  logger.logException(e, s);
   final message = e is HttpApiException ? e.message : e.toString();
-  state = state.copyWith(loading: false, error: message, data: null);
+  state = state.withError(message);
 }
 ```
 
 ## Documentation Links
 
-- Flutter networking cookbook: https://docs.flutter.dev/cookbook/networking/fetch-data
-- Dart null safety: https://dart.dev/null-safety
 - Dart generics: https://dart.dev/language/generics
+- Dart null safety: https://dart.dev/null-safety
 - `http` package: https://pub.dev/packages/http
-- Riverpod providers: https://riverpod.dev/docs/concepts2/providers

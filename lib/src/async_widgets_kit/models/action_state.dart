@@ -2,7 +2,7 @@ import '../../http_kit/http_kit.dart';
 
 enum SimpleAction { action }
 
-typedef SimpleActionState<T> = ActionState<T, SimpleAction>;
+typedef CommandState<T> = ActionState<T, SimpleAction>;
 typedef ActionSuccessBuilder<T, A extends Object, R> = R Function(
   T? data,
   A? action,

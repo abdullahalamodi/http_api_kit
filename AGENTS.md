@@ -4,8 +4,8 @@
 
 This is a Flutter package named `http_api_kit`. The public package export is `lib/http_api_kit.dart`. Implementation code lives under `lib/src/` and is split into two modules:
 
-- `lib/src/http_api/`: HTTP client core, config models, response models, localized messages, examples, and custom exceptions.
-- `lib/src/async_widgets_kit/`: async state models, reusable widgets, pagination UI, and examples.
+- `lib/src/http_kit/`: HTTP client core, config models, response models, localized messages, examples, and custom exceptions.
+- `lib/src/async_widgets_kit/`: async state models, reusable widgets, pagination UI, examples, and infinite-scroll support.
 
 There is no `test/` directory or asset bundle currently. Add tests under `test/` and any future package assets under a declared `flutter.assets` section in `pubspec.yaml`.
 
@@ -27,7 +27,7 @@ Use standard Dart style: two-space indentation, trailing commas for multi-line w
 
 ## Testing Guidelines
 
-Use `flutter_test` for unit and widget tests. Mirror source paths where practical, for example `test/http_api/core/http_api_test.dart` or `test/async_widgets_kit/core/async_widget_test.dart`. Name files with the `_test.dart` suffix and group tests around observable behavior: response parsing, exception mapping, pagination state, and loading/error/empty widget states.
+Use `flutter_test` for unit and widget tests. Mirror source paths where practical, for example `test/http_kit/core/http_api_test.dart` or `test/async_widgets_kit/core/async_widget_test.dart`. Name files with the `_test.dart` suffix and group tests around observable behavior: response parsing, exception mapping, pagination state, and loading/error/empty widget states.
 
 When adding HTTP tests, prefer mocked clients or fakes over real network calls.
 

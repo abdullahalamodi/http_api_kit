@@ -1,135 +1,56 @@
 # http_api_kit Action Flows
 
-Use this skill when implementing user-triggered commands such as confirm, cancel, login, signup, delete, download, scan, or sync actions with `ActionState`, `ActionStateModel`, and Riverpod listeners.
+Use this skill when implementing user-triggered commands — login, register, delete, confirm, upload, download, scan, sync — using `ActionState<T, A>` (or `CommandState<T>` for simple flows) and Riverpod `ref.listen`.
 
 ## Goal
 
-Action providers should represent one-off commands. Views should listen to action state and perform side effects such as snackbars, dialogs, navigation, and route pops.
+Action providers encapsulate one-off commands. Views listen to action state and perform side effects: snackbars, dialogs, navigation, and route pops.
 
-Preferred new API:
+## Naming Convention
 
-```dart
-ActionState<T, A extends Object>
-```
+| Pattern | Provider name | State type |
+|---|---|---|
+| Void command (simple) | `verbXProvider` | `CommandState<void>` |
+| Command with result (simple) | `verbXProvider` | `CommandState<T>` |
+| Void command (custom actions) | `verbXProvider` | `ActionState<void, XAction>` |
+| Command with result (custom actions) | `verbXProvider` | `ActionState<T, XAction>` |
 
-Compatibility API:
+Examples: `loginUserProvider` with `CommandState<void>`, `deleteUserProvider` with `CommandState<void>`, `uploadAvatarProvider` with `CommandState<UploadResultModel>`.
 
-```dart
-ActionStateModel<T>
-```
+## Quick Start — CommandState (No Custom Enum)
 
-Prefer the new generic `ActionState<T, A>` for new code because the app owns the action enum.
-
-## Define App-Owned Action Enum
-
-```dart
-enum ActivityAction {
-  confirmAttendance,
-  cancelAttendance,
-  downloadTicket,
-  syncReservations,
-}
-```
-
-Why:
-
-- Generic packages should not define app-specific actions.
-- The app action enum documents the feature's commands.
-- Listeners can branch safely by action type.
-
-## New ActionState Provider
+Use `CommandState<T>` (an alias for `ActionState<T, SimpleAction>`) when you do not need to distinguish between different action types. Best for single-command providers or when the listener does not branch on action identity.
 
 ```dart
-typedef _ActionState = ActionState<void, ActivityAction>;
+typedef _State = CommandState<void>;
 
-final activityActionsProvider = StateNotifierProvider.autoDispose<
-    ActivityActionsProvider, _ActionState>(
-  (ref) {
-    return ActivityActionsProvider(ref);
-  },
+final loginUserProvider =
+    StateNotifierProvider.autoDispose<LoginUserProvider, _State>(
+  (ref) => LoginUserProvider(ref),
 );
 
-class ActivityActionsProvider extends StateNotifier<_ActionState> {
-  ActivityActionsProvider(this._ref) : super(const ActionState.init());
+class LoginUserProvider extends StateNotifier<_State> {
+  LoginUserProvider(this._ref) : super(const CommandState.init());
 
   final Ref _ref;
 
-  void _updateLoading(bool value) {
-    _ref.read(loadingProvider.notifier).state = value;
-  }
-
-  Future<void> confirm({
-    required String type,
-    required List<String> numbers,
+  Future<void> login({
+    required String email,
+    required String password,
   }) async {
-    const action = ActivityAction.confirmAttendance;
-
-    _updateLoading(true);
-
     try {
-      await _ref.read(activitiesRepoProvider).confirmAttend(
-            type: type,
-            numbers: numbers,
+      await _ref.read(authRepoProvider).login(
+            email: email,
+            password: password,
           );
 
-      state = const ActionState.success(action: action);
+      state = const CommandState.success();
     } on HttpApiException catch (e) {
-      state = ActionState.failure(e, action: action);
+      state = CommandState.failure(e);
     } catch (e) {
-      state = ActionState.failure(
+      state = CommandState.failure(
         UnknownException(e.toString()),
-        action: action,
       );
-    } finally {
-      _updateLoading(false);
-    }
-  }
-}
-```
-
-Tips:
-
-- Use `ActionState<void, A>` when the command only reports success or failure.
-- Use `ActionState<T, A>` when the command returns data.
-- Store the action in both success and failure so the listener can show action-specific messages.
-
-Warnings:
-
-- Do not use package-owned domain actions for new code.
-- Do not navigate from the provider.
-- Do not swallow non-`HttpApiException` errors silently.
-- Do not leave global loading enabled if an exception occurs. Use `finally`.
-
-## Action Returning Data
-
-```dart
-enum AuthAction {
-  login,
-  signup,
-}
-
-typedef _AuthActionState = ActionState<AuthModel, AuthAction>;
-
-class AuthActionsProvider extends StateNotifier<_AuthActionState> {
-  AuthActionsProvider(this._ref) : super(const ActionState.init());
-
-  final Ref _ref;
-
-  Future<void> login(LoginBody body) async {
-    const action = AuthAction.login;
-
-    try {
-      final auth = await _ref.read(authRepoProvider).login(
-            appType: AppType.user,
-            body: body,
-          );
-
-      state = ActionState.success(
-        data: auth,
-        action: action,
-      );
-    } on HttpApiException catch (e) {
-      state = ActionState.failure(e, action: action);
     }
   }
 }
@@ -138,100 +59,170 @@ class AuthActionsProvider extends StateNotifier<_AuthActionState> {
 Listener:
 
 ```dart
-void listenToAuthActions(WidgetRef ref, BuildContext context) {
-  ref.listen(authActionsProvider, (previous, next) {
-    next.when(
-      init: () {},
-      success: (auth, action) {
-        if (action == AuthAction.login) {
-          context.showSnackbarSuccess('تم تسجيل الدخول بنجاح');
-          context.goNamed(AppRoutes.home);
-        }
-      },
-      failure: (error, action) {
-        context.showSnackbarError(error.message);
-      },
-    );
-  });
+ref.listen(loginUserProvider, (previous, next) {
+  next.when(
+    init: () {},
+    success: (_) {
+      context.showSnackbar('Login successful');
+      context.goNamed(AppRoutes.home);
+    },
+    failure: (error, _) {
+      context.showSnackbar(error.message);
+    },
+  );
+});
+```
+
+Clean code tips:
+
+- `CommandState<void>` for fire-and-forget commands that only report success/failure.
+- `CommandState<T>` for commands that return data (e.g. `CommandState<AuthModel>`).
+- No custom enum needed — `SimpleAction.action` is the single discriminant.
+- The `_` in the listener callbacks signals that you intentionally ignore the action parameter.
+
+Warnings:
+
+- If the listener must branch on different action types (e.g. `login` vs `register` in the same provider), switch to the custom-enum pattern below.
+
+## Custom Actions — App-Owned Action Enum
+
+Use `ActionState<T, A>` with a custom enum when the provider handles multiple command types and the listener must branch by action.
+
+```dart
+enum UserAction {
+  login,
+  register,
+  delete,
+  uploadAvatar,
 }
 ```
 
-## Compatibility With ActionStateModel
+Why:
 
-Existing code can stay on `ActionStateModel`:
+- The app enum documents every command the feature supports.
+- Listeners branch safely by action type without string comparisons.
+
+## Action Provider — Void Command
+
+Use `ActionState<void, A>` when the command only reports success or failure.
 
 ```dart
-final activityActionsProvider =
-    StateNotifierProvider.autoDispose<
-      ActivityActionsProvider,
-      ActionStateModel<void>
-    >(
-  (ref) {
-    return ActivityActionsProvider(ref);
-  },
+typedef _ActionState = ActionState<void, UserAction>;
+
+final loginUserProvider =
+    StateNotifierProvider.autoDispose<LoginUserProvider, _ActionState>(
+  (ref) => LoginUserProvider(ref),
 );
 
-class ActivityActionsProvider extends StateNotifier<ActionStateModel<void>> {
-  ActivityActionsProvider(this._ref) : super(const ActionStateModel.init());
+class LoginUserProvider extends StateNotifier<_ActionState> {
+  LoginUserProvider(this._ref) : super(const ActionState.init());
 
   final Ref _ref;
 
-  Future<void> confirm({
-    required String type,
-    required List<String> numbers,
+  Future<void> login({
+    required String email,
+    required String password,
   }) async {
+    const action = UserAction.login;
+
     try {
-      await _ref.read(activitiesRepoProvider).confirmAttend(
-            type: type,
-            numbers: numbers,
+      await _ref.read(authRepoProvider).login(
+            email: email,
+            password: password,
           );
 
-      state = const ActionStateModel.success();
+      state = ActionState.success(action: action);
     } on HttpApiException catch (e) {
-      state = ActionStateModel.exception(e);
+      state = ActionState.failure(e, action: action);
+    } catch (e) {
+      state = ActionState.failure(
+        UnknownException(e.toString()),
+        action: action,
+      );
     }
   }
 }
 ```
 
-Warning:
+Clean code tips:
 
-- `ActionStateModel` and `ActionType` are compatibility APIs. Prefer `ActionState<T, A>` for new code.
+- Use `ActionState<void, A>` when there is no return data.
+- Use `ActionState.failure` — not the deprecated `exception` factory.
+- Use a local `const action` at the top of each method for self-documentation.
+- Catch non-`HttpApiException` errors and wrap them in `UnknownException`.
+- Do not navigate or show snackbars from the provider.
 
-## Listen In Views
+Warnings:
 
-Call the listener from `build` in a `ConsumerWidget` or `ConsumerState`.
+- Do not swallow errors silently. Every path must produce a state.
+- Do not leave a loading flag enabled if an exception occurs.
+- Do not access `ref.read` for non-repository services inside action providers. Keep them focused on the action lifecycle.
+
+## Action Provider — Command With Data
+
+Use `ActionState<T, A>` when the command returns typed data.
 
 ```dart
-class ConfirmAttendancePage extends ConsumerWidget {
-  const ConfirmAttendancePage({super.key});
+typedef _LoginState = ActionState<AuthModel, UserAction>;
+
+final loginUserProvider =
+    StateNotifierProvider.autoDispose<LoginUserProvider, _LoginState>(
+  (ref) => LoginUserProvider(ref),
+);
+
+class LoginUserProvider extends StateNotifier<_LoginState> {
+  LoginUserProvider(this._ref) : super(const ActionState.init());
+
+  final Ref _ref;
+
+  Future<void> login(CredentialsBody body) async {
+    const action = UserAction.login;
+
+    try {
+      final auth = await _ref.read(authRepoProvider).login(body);
+
+      state = ActionState.success(data: auth, action: action);
+    } on HttpApiException catch (e) {
+      state = ActionState.failure(e, action: action);
+    }
+  }
+}
+```
+
+## Listen In Widgets
+
+Use `ref.listen` in a `ConsumerWidget` or `ConsumerState` to perform side effects.
+
+```dart
+class LoginPage extends ConsumerWidget {
+  const LoginPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    _listenToActionState(ref, context);
+    _listenToLoginAction(ref, context);
 
-    return ConfirmAttendanceView(
-      onConfirm: (numbers) {
-        ref.read(activityActionsProvider.notifier).confirm(
-              type: 'event',
-              numbers: numbers,
+    return LoginForm(
+      onLogin: (email, password) {
+        ref.read(loginUserProvider.notifier).login(
+              email: email,
+              password: password,
             );
       },
     );
   }
 
-  void _listenToActionState(WidgetRef ref, BuildContext context) {
-    ref.listen(activityActionsProvider, (previous, next) {
+  void _listenToLoginAction(WidgetRef ref, BuildContext context) {
+    ref.listen(loginUserProvider, (previous, next) {
       next.when(
         init: () {},
-        success: (_, action) {
-          if (action == ActivityAction.confirmAttendance) {
-            context.showSnackbarSuccess('تم تأكيد الحضور بنجاح');
-            Navigator.of(context).pop();
+        success: (auth, action) {
+          if (action == UserAction.login) {
+            context.showSnackbar('Login successful');
+            context.goNamed(AppRoutes.home);
           }
         },
         failure: (error, action) {
-          context.showSnackbarError(error.message);
+          context.showSnackbar(error.message);
         },
       );
     });
@@ -239,54 +230,56 @@ class ConfirmAttendancePage extends ConsumerWidget {
 }
 ```
 
-Tips:
+Clean code tips:
 
 - Keep listeners close to the UI that owns the side effect.
-- Compare `previous` and `next` if you need to prevent duplicate side effects.
-- Use `action` to choose the correct success message.
+- Use `action` to choose the correct success message or navigation target.
+- Compare `previous` and `next` if duplicate side-effect suppression is needed.
 
 Warnings:
 
-- Do not use `ref.watch` for one-off side effects. Use `ref.listen`.
-- Do not call `showSnackbar` after the widget is disposed. If using async callbacks directly in widgets, check `context.mounted`.
-- Do not emit the exact same success state repeatedly if the listener depends on equality and may suppress duplicates.
+- Use `ref.listen`, not `ref.watch`, for one-off side effects.
+- Check `context.mounted` before calling `showSnackbar` or `Navigator.pop` in async callbacks.
+- Do not emit the same success state repeatedly if the listener depends on equality and may suppress duplicates.
 
 ## Multiple Actions In One Provider
 
+Group related commands in a single provider to avoid duplication.
+
 ```dart
-class ActivityActionsProvider extends StateNotifier<_ActionState> {
-  ActivityActionsProvider(this._ref) : super(const ActionState.init());
+class UserActionsProvider extends StateNotifier<_ActionState> {
+  UserActionsProvider(this._ref) : super(const ActionState.init());
 
   final Ref _ref;
 
-  Future<void> confirm({
-    required String type,
-    required List<String> numbers,
-  }) {
-    return _runVoidAction(
-      action: ActivityAction.confirmAttendance,
-      task: () {
-        return _ref.read(activitiesRepoProvider).confirmAttend(
-              type: type,
-              numbers: numbers,
-            );
-      },
+  Future<void> login(CredentialsBody body) {
+    return _run(
+      action: UserAction.login,
+      task: () => _ref.read(authRepoProvider).login(body),
     );
   }
 
-  Future<void> cancel(String reservationId) {
-    return _runVoidAction(
-      action: ActivityAction.cancelAttendance,
-      task: () {
-        return _ref
-            .read(activitiesRepoProvider)
-            .cancelReservation(reservationId);
-      },
+  Future<void> deleteUser(String id) {
+    return _runVoid(
+      action: UserAction.delete,
+      task: () => _ref.read(userRepoProvider).deleteUser(id),
     );
   }
 
-  Future<void> _runVoidAction({
-    required ActivityAction action,
+  Future<void> _run<T>({
+    required UserAction action,
+    required Future<T> Function() task,
+  }) async {
+    try {
+      final data = await task();
+      state = ActionState.success(data: data, action: action);
+    } on HttpApiException catch (e) {
+      state = ActionState.failure(e, action: action);
+    }
+  }
+
+  Future<void> _runVoid({
+    required UserAction action,
     required Future<void> Function() task,
   }) async {
     try {
@@ -299,10 +292,19 @@ class ActivityActionsProvider extends StateNotifier<_ActionState> {
 }
 ```
 
+Clean code tips:
+
+- Extract `_run` and `_runVoid` helpers to reduce method body noise.
+- Name action enum values as verb + noun: `login`, `deleteUser`, `uploadAvatar`.
+
+Warnings:
+
+- Do not mix unrelated domains in a single action provider. Group by feature boundary.
+- Do not call `state =` more than once per method.
+
 ## Documentation Links
 
-- Riverpod `ref.listen`: https://riverpod.dev/docs/concepts2/refs
-- Riverpod providers: https://riverpod.dev/docs/concepts2/providers
+- Riverpod `ref.listen`: https://riverpod.dev/docs/concepts/refs
+- Riverpod providers: https://riverpod.dev/docs/concepts/providers
 - Flutter navigation: https://docs.flutter.dev/ui/navigation
-- Flutter snackbars: https://docs.flutter.dev/cookbook/design/snackbars
 - Dart enums: https://dart.dev/language/enums

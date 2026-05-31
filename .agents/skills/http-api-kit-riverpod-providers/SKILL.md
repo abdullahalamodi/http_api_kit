@@ -1,45 +1,53 @@
 # http_api_kit Riverpod Providers
 
-Use this skill when creating Riverpod providers that consume repositories built on `http_api_kit` and expose `ItemStateModel<T>`, `ListStateModel<T>`, or action state to Flutter views.
+Use this skill when creating Riverpod providers that consume `http_api_kit` repositories and expose `ItemStateModel<T>`, `PaginatedStateModel<T>`, or `ActionState<T, A>` to Flutter views.
 
 ## Goal
 
-Providers should own async flow, loading flags, errors, pagination, refresh behavior, and interaction with repositories. Repositories return typed data. Widgets render state.
+Providers own async flow, loading flags, errors, pagination, refresh behavior, and repository interaction. Repositories return typed data. Widgets render state. Keep providers thin — move mapping and endpoint logic into repositories.
 
-Preferred imports:
+## Naming Convention
+
+| Pattern | Provider name | State type |
+|---|---|---|
+| Single item | `showXProvider` | `ItemStateModel<X>` |
+| Paginated list | `listXProvider` | `PaginatedStateModel<X>` |
+| Command / action | `verbXProvider` | `ActionState<T, A>` |
+
+Examples: `showUserProvider`, `listUsersProvider`, `addUserProvider`, `loginUserProvider`, `deleteUserProvider`.
+
+## Imports
 
 ```dart
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_riverpod/legacy.dart';
 import 'package:http_api_kit/http_api_kit.dart';
 ```
 
-Use `legacy.dart` only when using `StateNotifierProvider` and `StateNotifier`.
+Do not import `flutter_riverpod/legacy.dart`. `StateNotifierProvider` is available from the main barrel in Riverpod 2.x.
 
-## Item Provider Pattern
+## Item Provider — Single Resource
 
-Use `ItemStateModel<T>` for one object or lookup result.
+Use `ItemStateModel<T>` for one object or a lookup result.
 
 ```dart
-typedef _MainState = ItemStateModel<AttendanceResultModel>;
+typedef _UserState = ItemStateModel<UserModel>;
 
-final showScanResultProvider = StateNotifierProvider.autoDispose
-    .family<ShowScanResultProvider, _MainState, ScanFamily>(
-  (ref, scanFamily) {
-    return ShowScanResultProvider(ref, scanFamily);
+final showUserProvider = StateNotifierProvider.autoDispose
+    .family<ShowUserProvider, _UserState, String>(
+  (ref, userId) {
+    return ShowUserProvider(ref, userId);
   },
 );
 
-class ShowScanResultProvider extends StateNotifier<_MainState> {
-  ShowScanResultProvider(this.ref, this.scanFamily)
-      : super(ItemStateModel.init()) {
-    lookup();
+class ShowUserProvider extends StateNotifier<_UserState> {
+  ShowUserProvider(this._ref, this.userId) : super(ItemStateModel.init()) {
+    fetch();
   }
 
-  final Ref ref;
-  final ScanFamily scanFamily;
+  final Ref _ref;
+  final String userId;
 
-  Future<void> lookup() async {
+  Future<void> fetch() async {
     state = state.copyWith(
       loading: state.dataModel == null,
       innerloading: state.dataModel != null,
@@ -47,9 +55,7 @@ class ShowScanResultProvider extends StateNotifier<_MainState> {
     );
 
     try {
-      final data = await ref
-          .read(activitiesRepoProvider)
-          .scanReservation(scanFamily);
+      final data = await _ref.read(userRepoProvider).showUser(userId);
 
       state = state.copyWith(
         loading: false,
@@ -58,9 +64,8 @@ class ShowScanResultProvider extends StateNotifier<_MainState> {
         data: data,
       );
     } catch (e, s) {
-      CustomLogger.exceptionLogger(error: e, stackTrace: s);
+      logger.logException(e, s);
       final message = e is HttpApiException ? e.message : e.toString();
-
       state = state.copyWith(
         loading: false,
         innerloading: false,
@@ -72,48 +77,52 @@ class ShowScanResultProvider extends StateNotifier<_MainState> {
 }
 ```
 
-Tips:
+Clean code tips:
 
-- Use `loading` for first blocking load.
+- Use `loading` for the first blocking load.
 - Use `innerloading` for refresh-in-place when existing data should stay visible.
-- Keep the family argument immutable and comparable.
-- In `autoDispose.family`, call `ref.invalidate(provider(arg))` from UI to retry with a fresh notifier.
+- Keep the family argument (`String` in the example) immutable and comparable.
+- Prefer `copyWith` over mutable assignment. Use `withLoading()`, `withData()`, `withError()` when no custom cross-field logic is needed.
+- Name the state typedef `_XState` as a private alias so the public surface stays clean.
+- Log `StackTrace` with the error — never ignore it.
 
 Warnings:
 
-- Do not set `loading: true` when refreshing existing data, or the widget will replace data with the loading UI.
-- Do not ignore `StackTrace`; log it at provider boundary.
+- Do not set `loading: true` when refreshing existing data, or the widget will swap data for the loading UI.
 - Do not call `ref.watch` inside provider methods. Use `ref.read` for one-shot repository calls.
-- Do not trigger navigation or snackbars from data providers.
+- Do not trigger navigation or snackbars from data providers. Side effects belong in UI listeners.
+- Do not catch errors to return default values. Let error state propagate to the widget layer.
 
-## List Provider Pattern
-
-Use `ListStateModel<T>` when repository returns `PaginatedDataModel<T>`.
+For retry, invalidate the provider from the widget:
 
 ```dart
-typedef _MainState = ListStateModel<ActivityModel>;
+ref.invalidate(showUserProvider(userId));
+```
 
-final listActivitiesProvider = StateNotifierProvider.autoDispose
-    .family<ListActivitiesProvider, _MainState, ActivityType>(
-  (ref, type) {
-    return ListActivitiesProvider(ref, type);
+## Paginated List Provider
+
+Use `PaginatedStateModel<T>` when the repository returns `PaginatedDataModel<T>`.
+
+```dart
+typedef _ListState = PaginatedStateModel<UserModel>;
+
+final listUsersProvider = StateNotifierProvider.autoDispose
+    .family<ListUsersProvider, _ListState, String>(
+  (ref, statusFilter) {
+    return ListUsersProvider(ref, statusFilter);
   },
 );
 
-class ListActivitiesProvider extends StateNotifier<_MainState> {
-  ListActivitiesProvider(this.ref, this.type)
-      : super(ListStateModel.init()) {
-    getActivities();
+class ListUsersProvider extends StateNotifier<_ListState> {
+  ListUsersProvider(this._ref, this.statusFilter)
+      : super(PaginatedStateModel.init()) {
+    fetch();
   }
 
-  final Ref ref;
-  final ActivityType type;
+  final Ref _ref;
+  final String statusFilter;
 
-  Future<void> getActivities({
-    FilterModel filters = const FilterModel(),
-    int page = 1,
-    bool skipLoading = false,
-  }) async {
+  Future<void> fetch({int page = 1, bool skipLoading = false}) async {
     final hasData = state.dataModel != null;
 
     if (!skipLoading) {
@@ -125,26 +134,19 @@ class ListActivitiesProvider extends StateNotifier<_MainState> {
     }
 
     try {
-      final data = await ref.read(activitiesRepoProvider).getActivities(
-            filters: filters.copyWith(page: page),
-            type: type,
+      final data = await _ref.read(userRepoProvider).listUsers(
+            page: page,
+            statusFilter: statusFilter,
           );
 
-      state = state.copyWith(
-        loading: false,
-        innerloading: false,
-        dataModel: data,
-        error: null,
-      );
+      state = state.withData(data);
     } catch (e, s) {
-      CustomLogger.exceptionLogger(error: e, stackTrace: s);
+      logger.logException(e, s);
       final message = e is HttpApiException ? e.message : e.toString();
 
-      state = state.copyWith(
-        loading: false,
-        innerloading: false,
-        dataModel: hasData ? state.dataModel : null,
-        error: message,
+      state = state.withError(
+        message,
+        data: hasData ? state.dataModel : null,
       );
     }
   }
@@ -156,85 +158,58 @@ class ListActivitiesProvider extends StateNotifier<_MainState> {
         pagination.currentPage == pagination.totalPages;
   }
 
-  Future<bool> onLoadingMore() async {
+  Future<bool> loadMore() async {
     final current = state.dataModel;
     if (current == null || noMore) return false;
 
     try {
       final nextPage = current.pagination.currentPage + 1;
-      final nextData = await ref.read(activitiesRepoProvider).getActivities(
-            filters: FilterModel(page: nextPage),
-            type: type,
+      final nextData = await _ref.read(userRepoProvider).listUsers(
+            page: nextPage,
+            statusFilter: statusFilter,
           );
 
-      state = state.copyWith(
-        dataModel: PaginatedDataModel<ActivityModel>(
-          data: [
-            ...current.data,
-            ...nextData.data,
-          ],
-          pagination: nextData.pagination,
-        ),
-        loading: false,
-        innerloading: false,
-        error: null,
-      );
-
+      state = state.appendData(nextData);
       return true;
     } catch (e, s) {
-      CustomLogger.exceptionLogger(error: e, stackTrace: s);
+      logger.logException(e, s);
       return false;
     }
   }
 }
 ```
 
-Tips:
+Clean code tips:
 
-- For "load more", append to the existing list instead of replacing it.
-- For filter changes, replace the list and reset the page to `1`.
+- Use `appendData` from `PaginatedStateModel` for infinite-scroll page appending; it handles page-1 replacement vs subsequent appending automatically.
+- For filter changes, reset to page 1 by reloading the provider.
 - For pull-to-refresh, keep existing data visible and set `innerloading: true`.
-- Keep `noMore` derived from state instead of storing another mutable flag.
+- Keep `noMore` derived from state instead of a separate mutable flag.
 
 Warnings:
 
-- Do not call `state.dataModel!` unless the method already checked for null.
-- Do not replace data with null on a refresh error unless the initial load failed.
-- Do not mix pagination state into the widget. The provider should decide what page to load.
+- Do not call `state.dataModel!` unless the method already verified it is non-null.
+- Do not replace data with `null` on a refresh error unless the initial load failed.
+- Do not mix pagination logic into widgets. The provider decides what page to load.
 
-## Filtered List Pattern
-
-When filters change, pass a full immutable filter object.
+## Filter-Change Pattern
 
 ```dart
-Future<void> applyFilters(FilterModel filters) {
-  return getActivities(
-    filters: filters.copyWith(page: 1),
-    page: 1,
-  );
+Future<void> applyStatusFilter(String status) {
+  // Replace the entire list; reset to page 1
+  _ref.invalidate(listUsersProvider(status));
 }
 ```
 
-For custom filters:
+Or when the provider is not family-based:
 
 ```dart
-final filters = const FilterModel().copyWith(
-  page: 1,
-  customFilters: {
-    'filters[status]': 'confirmed',
-    'filters[date_from]': dateFrom,
-    'filters[date_to]': dateTo,
-  },
-);
-
-await ref
-    .read(listActivitiesProvider(ActivityType.events).notifier)
-    .getActivities(filters: filters);
+Future<void> applyStatusFilter(String status) async {
+  await fetch(page: 1);
+}
 ```
 
-## Refresh-In-Place Pattern
-
-Use `innerloading` when data exists and the UI should remain visible.
+## Refresh-In-Place
 
 ```dart
 Future<void> refresh() async {
@@ -247,26 +222,14 @@ Future<void> refresh() async {
   );
 
   try {
-    final data = await ref.read(activitiesRepoProvider).getActivities(
-          filters: const FilterModel(page: 1),
-          type: type,
-        );
-
-    state = state.copyWith(
-      loading: false,
-      innerloading: false,
-      dataModel: data,
-      error: null,
-    );
+    final data = await _ref.read(userRepoProvider).listUsers(page: 1);
+    state = state.withData(data);
   } catch (e, s) {
-    CustomLogger.exceptionLogger(error: e, stackTrace: s);
+    logger.logException(e, s);
     final message = e is HttpApiException ? e.message : e.toString();
-
-    state = state.copyWith(
-      loading: false,
-      innerloading: false,
-      dataModel: current,
-      error: current == null ? message : null,
+    state = state.withError(
+      message,
+      data: current,
     );
   }
 }
@@ -277,32 +240,33 @@ Future<void> refresh() async {
 For family providers:
 
 ```dart
-final provider = showActivityProvider((
-  id: activityId,
-  type: activityType,
-));
+final provider = showUserProvider(userId);
 
-AsyncItemWidget(
+AsyncItemWidget<UserModel>(
   asyncData: ref.watch(provider),
   onRetry: () => ref.invalidate(provider),
-  dataBuilder: (data) => ActivityDetailsView(data!),
+  dataBuilder: (user) => UserProfileView(user!),
 );
 ```
 
-For non-family providers:
+For paginated list:
 
 ```dart
-AsyncItemWidget(
-  asyncData: ref.watch(profileProvider),
-  onRetry: () => ref.invalidate(profileProvider),
-  dataBuilder: (profile) => ProfileView(profile!),
+final provider = listUsersProvider('active');
+
+AsyncPaginatedWidget<UserModel>(
+  asyncData: ref.watch(provider),
+  onRetry: () => ref.invalidate(provider),
+  onPageChanged: (page) {
+    ref.read(provider.notifier).fetch(page: page);
+  },
+  dataBuilder: (users) => UserListView(users),
 );
 ```
 
 ## Documentation Links
 
-- Riverpod providers: https://riverpod.dev/docs/concepts2/providers
-- Riverpod auto dispose: https://riverpod.dev/docs/concepts2/auto_dispose
-- Riverpod families: https://riverpod.dev/docs/concepts2/family
-- Riverpod `ref.listen`: https://riverpod.dev/docs/concepts2/refs
-- Flutter async UI cookbook: https://docs.flutter.dev/cookbook/networking/fetch-data
+- Riverpod providers: https://riverpod.dev/docs/concepts/providers
+- Riverpod `autoDispose`: https://riverpod.dev/docs/concepts/auto_dispose
+- Riverpod families: https://riverpod.dev/docs/concepts/families
+- Riverpod `ref.listen`: https://riverpod.dev/docs/concepts/refs

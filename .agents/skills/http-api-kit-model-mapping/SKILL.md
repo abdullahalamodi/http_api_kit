@@ -1,92 +1,100 @@
 # http_api_kit Model Mapping And Pagination
 
-Use this skill when converting backend response maps into app models, lists, pagination objects, and `PaginatedDataModel<T>`.
+Use this skill when converting backend response maps into app models, lists, pagination objects, `PaginatedDataModel<T>`, and `PaginatedStateModel<T>`.
 
 ## Goal
 
-Mapping should be predictable, typed, and isolated at the repository boundary. The rest of the app should receive clean Dart models.
+Mapping should be predictable, typed, and isolated at the repository boundary. Views and providers receive clean Dart models — never raw JSON or dynamic maps.
+
+## Naming Convention
+
+| Model kind | Example | Pattern |
+|---|---|---|
+| Domain entity | `UserModel`, `OrderModel` | `PascalCase` + `Model` suffix |
+| Body / DTO | `CreateUserBody`, `LoginBody` | `Verb + Noun` + `Body` suffix |
+| Response wrapper | `StandardResponseModel` | Package-owned; not app-defined |
+| Paginated wrapper | `PaginatedDataModel<T>` | Package-owned; not app-defined |
+
+Keep model factory methods consistent: always `fromMap(Map<String, dynamic>)`.
 
 ## Single Model Mapping
 
-Preferred:
+Always copy `response.data` before parsing:
 
 ```dart
-dataMapper: (model) {
-  final data = Map<String, dynamic>.from(model.data);
-  return ActivityModel.fromMap(data);
+dataMapper: (response) {
+  final data = Map<String, dynamic>.from(response.data);
+  return UserModel.fromMap(data);
 }
-```
-
-Avoid:
-
-```dart
-dataMapper: (model) => ActivityModel.fromMap(model.data);
 ```
 
 Why:
 
-- `model.data` is `dynamic`.
-- `Map<String, dynamic>.from` gives model factories a predictable shape.
-- It fails early if the backend returns an unexpected type.
+- `response.data` is `dynamic`. `Map<String, dynamic>.from` gives model factories a predictable shape and fails early if the backend returns an unexpected type.
+
+Avoid:
+
+```dart
+dataMapper: (response) => UserModel.fromMap(response.data);
+```
 
 ## Nested Model Mapping
 
-For nested backend objects, copy each nested map before parsing or mutation.
+Copy each nested map before parsing or mutation.
 
 ```dart
-dataMapper: (model) {
-  final root = Map<String, dynamic>.from(model.data);
-  final reservation = Map<String, dynamic>.from(root['reservation']);
+dataMapper: (response) {
+  final root = Map<String, dynamic>.from(response.data);
+  final order = Map<String, dynamic>.from(root['order']);
 
-  final applicant = reservation['applicant'];
-  if (applicant != null) {
-    reservation['applicant'] = ApplicantModel.fromMap(
-      Map<String, dynamic>.from(applicant),
+  final customer = order['customer'];
+  if (customer != null) {
+    order['customer'] = CustomerModel.fromMap(
+      Map<String, dynamic>.from(customer),
     );
   }
 
-  final reservable = Map<String, dynamic>.from(reservation['reservable']);
-  reservation['reservable'] = ActivityModel.fromMap(reservable);
+  final items = (order['line_items'] as List).map(
+    (item) => LineItemModel.fromMap(
+      Map<String, dynamic>.from(item),
+    ),
+  ).toList();
+  order['line_items'] = items;
 
-  return AttendanceResultModel.fromMap(reservation);
+  return OrderModel.fromMap(order);
 }
 ```
 
-Tips:
+Clean code tips:
 
-- Name maps after their domain meaning: `reservation`, `applicant`, `pagination`.
-- Convert lists and maps at the boundary.
-- Keep backend normalization inside the mapper.
+- Name local maps after their domain meaning: `order`, `customer`, `pagination`.
+- Convert lists and maps at the boundary, not after passing them around.
+- Keep backend normalization (type discriminators, key renaming) inside the mapper.
 
 Warnings:
 
-- Do not mutate a map returned by the HTTP client without copying it first.
-- Do not spread nullable maps without checking them.
-- Do not call model factories with `dynamic`.
+- Do not mutate a map returned by the HTTP client without copying it first (`Map<String, dynamic>.from`).
+- Do not spread nullable maps without a null check.
+- Do not call model factories with `dynamic` — cast to `Map<String, dynamic>` first.
 
 ## Backend Normalization
 
 When the backend sends a type discriminator separately, normalize before constructing the model.
 
 ```dart
-dataMapper: (model) {
-  final data = Map<String, dynamic>.from(model.data);
-  final reservation = Map<String, dynamic>.from(data['reservation']);
+dataMapper: (response) {
+  final data = Map<String, dynamic>.from(response.data);
+  final item = Map<String, dynamic>.from(data['item']);
 
-  final reservableType = reservation['reservable_type'] as String;
-  final activityType = reservableType == 'Card'
-      ? ActivityType.cards
-      : ActivityType.events;
+  final kind = item['kind'] as String;
+  final type = kind == 'premium' ? ItemType.premium : ItemType.standard;
 
-  final reservable = Map<String, dynamic>.from(reservation['reservable']);
-  reservable['type'] = activityType.name;
+  final details = Map<String, dynamic>.from(item['details']);
+  details['type'] = type.name;
 
-  reservation['reservable'] = ActivityModel.fromMapWithType(
-    reservable,
-    activityType,
-  );
+  item['details'] = ItemModel.fromMapWithType(details, type);
 
-  return AttendanceResultModel.fromMap(reservation);
+  return OrderItemModel.fromMap(item);
 }
 ```
 
@@ -97,46 +105,43 @@ Why:
 
 ## List Mapping
 
-Preferred:
-
 ```dart
-List<ActivityModel> mapActivities(dynamic value) {
-  return List<ActivityModel>.from(
+List<UserModel> _mapUsers(dynamic value) {
+  return List<UserModel>.from(
     (value as List).map(
-      (item) {
-        return ActivityModel.fromMap(
-          Map<String, dynamic>.from(item),
-        );
-      },
+      (item) => UserModel.fromMap(
+        Map<String, dynamic>.from(item),
+      ),
     ),
   );
 }
 ```
 
-Use it inside repositories:
+Usage inside a repository:
 
 ```dart
-dataMapper: (model) {
-  final data = Map<String, dynamic>.from(model.data);
-  return mapActivities(data[ResponseKeys.activities]);
+dataMapper: (response) {
+  final data = Map<String, dynamic>.from(response.data);
+  return _mapUsers(data['users']);
 }
 ```
 
-Warning:
+Warnings:
 
-- Avoid `List<T>.from(model.data.map(...))` if `model.data` is dynamic and not first checked or cast as a list.
+- Avoid `List<T>.from(response.data.map(...))` if `response.data` is `dynamic` and not first cast as a list.
+- Always copy each list element with `Map<String, dynamic>.from(item)`.
 
 ## PaginatedDataModel Mapping
 
-Use this shape for any paginated endpoint:
+Use this reusable pattern for any paginated endpoint:
 
 ```dart
-PaginatedDataModel<T> mapPaginatedData<T>({
-  required ResponseModelInterface model,
+PaginatedDataModel<T> _mapPaginated<T>({
+  required dynamic responseData,
   required String itemsKey,
-  required T Function(Map<String, dynamic> map) fromMap,
+  required T Function(Map<String, dynamic>) fromMap,
 }) {
-  final data = Map<String, dynamic>.from(model.data);
+  final data = Map<String, dynamic>.from(responseData);
 
   final items = List<T>.from(
     (data[itemsKey] as List).map(
@@ -145,7 +150,7 @@ PaginatedDataModel<T> mapPaginatedData<T>({
   );
 
   final pagination = PaginationModel.fromJson(
-    Map<String, dynamic>.from(data[ResponseKeys.pagination]),
+    Map<String, dynamic>.from(data['pagination']),
   );
 
   return PaginatedDataModel<T>(
@@ -158,24 +163,18 @@ PaginatedDataModel<T> mapPaginatedData<T>({
 Example:
 
 ```dart
-Future<PaginatedDataModel<ActivityReservationModel>> getReservations({
-  required ReservationsFamily family,
-  required FilterModel filters,
+Future<PaginatedDataModel<UserModel>> listUsers({
+  int page = 1,
+  int limit = 10,
 }) {
-  return _httpApi.getList<PaginatedDataModel<ActivityReservationModel>>(
-    endPoint: EndPoints.activityReservations,
-    parameters: {
-      'limit': filters.limit,
-      'page': filters.page,
-      'filters[reservable_id]': family.reservableId,
-      'filters[reservable_type]': family.reservableType.reservationsType,
-      ...filters.customFilters,
-    },
-    dataMapper: (model) {
-      return mapPaginatedData<ActivityReservationModel>(
-        model: model,
-        itemsKey: ResponseKeys.reservations,
-        fromMap: ActivityReservationModel.fromMap,
+  return _httpApi.getList<PaginatedDataModel<UserModel>>(
+    endPoint: '/users',
+    parameters: {'page': page, 'limit': limit},
+    dataMapper: (response) {
+      return _mapPaginated<UserModel>(
+        responseData: response.data,
+        itemsKey: 'users',
+        fromMap: UserModel.fromMap,
       );
     },
   );
@@ -184,36 +183,70 @@ Future<PaginatedDataModel<ActivityReservationModel>> getReservations({
 
 ## PaginationModel
 
-`PaginationModel` should represent server pagination metadata.
+`PaginationModel` represents server pagination metadata:
 
 ```dart
 final pagination = PaginationModel.fromJson(
-  Map<String, dynamic>.from(data[ResponseKeys.pagination]),
+  Map<String, dynamic>.from(data['pagination']),
 );
 ```
 
-Use `PaginationModel.window` for UI page buttons:
+For UI page buttons, use `PaginationModel.window`:
 
 ```dart
 final window = pagination.window;
 
 for (final page in window.pages) {
-  // render page button
+  // render page button or ellipsis
 }
 ```
 
-Tips:
+Compute `noMore` in the provider:
 
-- Use `currentPage` and `totalPages` to compute `noMore`.
-- Keep pagination parsing in the repository.
+```dart
+bool get noMore {
+  final pagination = state.dataModel?.pagination;
+  return pagination == null ||
+      pagination.totalPages == 0 ||
+      pagination.currentPage == pagination.totalPages;
+}
+```
+
+Clean code tips:
+
+- Keep `PaginationModel` parsing in the repository.
 - Keep pagination loading decisions in the provider.
 - Keep pagination rendering in the widget.
+- Use `PaginationModel` read-only — do not mutate it.
 
 Warnings:
 
-- Do not duplicate page-window logic in multiple widgets.
-- Do not treat `totalPages == 0` and `currentPage == totalPages` the same unless the product behavior is intentional.
+- Do not duplicate page-window logic in multiple widgets. `PaginationModel.window` already handles ellipsis gaps.
+- Do not treat `totalPages == 0` and `currentPage == totalPages` as identical unless the product behavior intentionally matches.
 - Do not append new page data when filters changed. Reset the list.
+
+## PaginatedStateModel
+
+`PaginatedStateModel<T>` is the provider-side state model for paginated data. It extends `BaseStateModel<PaginatedDataModel<T>?>` and provides:
+
+| Method | Purpose |
+|---|---|
+| `withLoading()` | First load |
+| `withInnerLoading()` | Refresh in place |
+| `withData(data)` | Replace data |
+| `appendData(newData)` | Append next page (auto-detects page 1) |
+| `withError(message, data:?)` | Error with optional fallback data |
+
+```dart
+// Provider
+state = state.withData(data);
+
+// Append for infinite scroll
+state = state.appendData(nextData);
+
+// Error while keeping existing data
+state = state.withError(message, data: state.dataModel);
+```
 
 ## Filter Parameters
 
@@ -223,16 +256,14 @@ Build filter parameters in repository methods:
 parameters: {
   'limit': filters.limit,
   'page': filters.page,
-  'filters[reservable_id]': family.reservableId,
-  'filters[reservable_type]': family.reservableType.reservationsType,
+  'filter[status]': filters.status,
   ...filters.customFilters,
 },
 ```
 
-Tips:
+Clean code tips:
 
-- Keep `FilterModel` immutable.
-- Use `copyWith(page: page)` for pagination.
+- Keep `FilterModel` immutable. Use `copyWith(page: page)` for pagination.
 - Use backend key constants for repeated filter names.
 
 Warnings:
@@ -245,10 +276,10 @@ Warnings:
 Prefer explicit checks:
 
 ```dart
-final applicant = reservation['applicant'];
-if (applicant != null) {
-  reservation['applicant'] = ApplicantModel.fromMap(
-    Map<String, dynamic>.from(applicant),
+final customer = order['customer'];
+if (customer != null) {
+  order['customer'] = CustomerModel.fromMap(
+    Map<String, dynamic>.from(customer),
   );
 }
 ```
@@ -256,10 +287,10 @@ if (applicant != null) {
 Avoid:
 
 ```dart
-reservation['applicant'] = ApplicantModel.fromMap(
-  reservation['applicant']!,
-);
+order['customer'] = CustomerModel.fromMap(order['customer']!);
 ```
+
+Always copy before parsing, never assert with `!` on backend data that could be absent.
 
 ## Documentation Links
 
@@ -267,4 +298,3 @@ reservation['applicant'] = ApplicantModel.fromMap(
 - Dart generics: https://dart.dev/language/generics
 - Dart maps: https://api.dart.dev/dart-core/Map-class.html
 - Dart lists: https://api.dart.dev/dart-core/List-class.html
-- Flutter networking cookbook: https://docs.flutter.dev/cookbook/networking/fetch-data
