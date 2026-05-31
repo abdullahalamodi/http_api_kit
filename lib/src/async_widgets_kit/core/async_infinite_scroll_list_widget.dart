@@ -47,10 +47,26 @@ class _AsyncInfiniteScrollListWidgetState<T>
   }
 
   @override
+  void didUpdateWidget(AsyncInfiniteScrollListWidget<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.asyncData.dataModel?.data !=
+        widget.asyncData.dataModel?.data) {
+      _scheduleLoadMoreIfNeeded();
+    }
+  }
+
+  @override
   void dispose() {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scheduleLoadMoreIfNeeded() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _onScroll();
+    });
   }
 
   bool _hasMore(PaginationModel pagination) {
