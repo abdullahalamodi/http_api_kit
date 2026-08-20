@@ -111,11 +111,12 @@ class HttpApi<R extends ResponseModelInterface> implements HttpApiInterface<R> {
 
       // logger.logResponse(HttpApiResponseLog(response));
 
-      return _handleResponse(
+      final res = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
         customResponseParser: customResponseParser,
       );
+      return res;
     } catch (e, s) {
       _logError(e, s);
       throw _switchError(e);
@@ -349,11 +350,12 @@ class HttpApi<R extends ResponseModelInterface> implements HttpApiInterface<R> {
 
       logger.logResponse(HttpApiResponseLog(response));
 
-      return _handleResponse(
+      final res = await _handleResponse(
         response: response,
         dataMapper: dataMapper,
         customResponseParser: customResponseParser,
       );
+      return res;
     } catch (e, s) {
       _logError(e, s);
       throw _switchError(e);
