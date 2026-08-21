@@ -109,7 +109,7 @@ class HttpApi<R extends ResponseModelInterface> implements HttpApiInterface<R> {
         _ => throw UnsupportedError('HTTP method $method is not supported.'),
       };
 
-      // logger.logResponse(HttpApiResponseLog(response));
+      logger.logResponse(HttpApiResponseLog(response));
 
       final res = await _handleResponse(
         response: response,
@@ -134,7 +134,6 @@ class HttpApi<R extends ResponseModelInterface> implements HttpApiInterface<R> {
         statusCode: response.statusCode,
       );
     }
-    logger.logResponse(HttpApiResponseLog(response));
 
     final data = json.decode(response.body);
     final responseModel = _parseResponseModel(data, customResponseParser);
