@@ -95,7 +95,7 @@ class _AsyncInfiniteScrollListWidgetState<T>
     }
 
     if (widget.asyncData.error != null) {
-      return _buildErrorWidget(widget.asyncData.error!);
+      return _buildErrorWidget(widget.asyncData.error!.message);
     }
 
     final data = widget.asyncData.dataModel?.data ?? [];

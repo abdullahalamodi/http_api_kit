@@ -34,6 +34,15 @@ abstract interface class HttpApiInterface<R extends ResponseModelInterface> {
     ResponseParser<R>? customResponseParser,
   });
 
+  Future<T> patch<T>({
+    required String endPoint,
+    Map<String, dynamic>? parameters,
+    Map<String, String>? requestHeaders,
+    required Map<String, dynamic> body,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
+  });
+
   Future<T> delete<T>({
     required String endPoint,
     Map<String, dynamic>? parameters,

@@ -1,6 +1,5 @@
 import 'package:flutter/widgets.dart';
-
-import '../async_widgets_kit.dart';
+import 'package:http_api_kit/http_api_kit.dart';
 
 class AsyncPaginatedWidgetExample extends StatelessWidget {
   const AsyncPaginatedWidgetExample({super.key});
@@ -9,7 +8,7 @@ class AsyncPaginatedWidgetExample extends StatelessWidget {
   PaginatedStateModel<String> _data() {
     return PaginatedStateModel(
       loading: false,
-      error: 'error',
+      error: InternetException('error'),
       dataModel: PaginatedDataModel(
         data: [],
         pagination: PaginationModel(

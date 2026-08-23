@@ -258,6 +258,26 @@ class HttpApi<R extends ResponseModelInterface> implements HttpApiInterface<R> {
   }
 
   @override
+  Future<T> patch<T>({
+    required String endPoint,
+    Map<String, dynamic>? parameters,
+    Map<String, String>? requestHeaders,
+    required Map<String, dynamic> body,
+    required T Function(R responseModel) dataMapper,
+    ResponseParser<R>? customResponseParser,
+  }) {
+    return _sendJsonRequest(
+      endPoint: endPoint,
+      method: 'PATCH',
+      parameters: parameters,
+      requestHeaders: requestHeaders,
+      body: body,
+      dataMapper: dataMapper,
+      customResponseParser: customResponseParser,
+    );
+  }
+
+  @override
   Future<T> getFile<T>({
     required String endPoint,
     Map<String, dynamic>? parameters,

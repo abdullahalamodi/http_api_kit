@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../async_widgets_kit.dart';
+import 'package:http_api_kit/src/src.dart';
 
 class AsyncItemWidgetExample extends StatefulWidget {
   const AsyncItemWidgetExample({super.key});
@@ -82,7 +82,7 @@ ItemStateModel<String> _loading() {
 ItemStateModel<String> _error() {
   return ItemStateModel(
     loading: false,
-    error: 'Some error excure',
+    error: InternetException('Some error excure'),
     dataModel: 'dummy data',
   );
 }

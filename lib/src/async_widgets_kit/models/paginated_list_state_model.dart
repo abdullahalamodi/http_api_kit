@@ -1,12 +1,12 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-import '../async_widgets_kit.dart';
+import 'package:http_api_kit/http_api_kit.dart';
 
 class PaginatedStateModel<T> extends BaseStateModel<PaginatedDataModel<T>?> {
   @override
   final bool loading;
 
   @override
-  final String? error;
+  final HttpApiException? error;
 
   @override
   final PaginatedDataModel<T>? dataModel;
@@ -72,7 +72,7 @@ class PaginatedStateModel<T> extends BaseStateModel<PaginatedDataModel<T>?> {
   }
 
   PaginatedStateModel<T> withError(
-    String error, {
+    HttpApiException error, {
     PaginatedDataModel<T>? data,
   }) {
     return copyWith(
@@ -104,7 +104,7 @@ class PaginatedStateModel<T> extends BaseStateModel<PaginatedDataModel<T>?> {
 
   PaginatedStateModel<T> copyWith({
     bool? loading,
-    String? error,
+    HttpApiException? error,
     PaginatedDataModel<T>? dataModel,
     bool? innerloading,
   }) {

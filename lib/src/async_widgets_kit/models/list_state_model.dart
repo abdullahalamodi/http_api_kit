@@ -1,12 +1,12 @@
 // ignore_for_file: public_member_api_docs, sort_constructors_first
-import '../async_widgets_kit.dart';
+import 'package:http_api_kit/http_api_kit.dart';
 
 class ListStateModel<T> extends BaseStateModel<List<T>?> {
   @override
   final bool loading;
 
   @override
-  final String? error;
+  final HttpApiException? error;
 
   @override
   final List<T>? dataModel;
@@ -57,7 +57,7 @@ class ListStateModel<T> extends BaseStateModel<List<T>?> {
   }
 
   ListStateModel<T> withError(
-    String error, {
+    HttpApiException error, {
     List<T>? data,
   }) {
     return copyWith(
@@ -89,7 +89,7 @@ class ListStateModel<T> extends BaseStateModel<List<T>?> {
 
   ListStateModel<T> copyWith({
     bool? loading,
-    String? error,
+    HttpApiException? error,
     List<T>? dataModel,
     bool? innerloading,
   }) {

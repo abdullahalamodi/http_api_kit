@@ -23,7 +23,7 @@ class AsyncWidget<T> extends StatelessWidget {
     if (asyncData.loading) {
       return _buildLoadingWidget();
     } else if (asyncData.error != null) {
-      return _buildErrorWidget(asyncData.error!);
+      return _buildErrorWidget(asyncData.error!.message);
     }
 
     final child = _buildDataWidget();

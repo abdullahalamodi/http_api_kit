@@ -1,3 +1,5 @@
+import 'package:http_api_kit/http_api_kit.dart';
+
 abstract class BaseStateModel<T> {
   const BaseStateModel();
 
@@ -7,7 +9,7 @@ abstract class BaseStateModel<T> {
 
   bool get isRefreshing => innerloading;
 
-  String? get error;
+  HttpApiException? get error;
 
   T get dataModel;
 }
