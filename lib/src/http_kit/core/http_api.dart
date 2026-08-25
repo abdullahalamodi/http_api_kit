@@ -101,6 +101,11 @@ class HttpApi<R extends ResponseModelInterface> implements HttpApiInterface<R> {
             headers: mergedHeaders,
             body: json.encode(body ?? const {}),
           ),
+        'PATCH' => await httpClient.patch(
+            uri,
+            headers: mergedHeaders,
+            body: json.encode(body ?? const {}),
+          ),
         'DELETE' => await httpClient.delete(
             uri,
             headers: mergedHeaders,

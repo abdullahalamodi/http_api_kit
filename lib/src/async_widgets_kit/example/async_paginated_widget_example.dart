@@ -5,8 +5,8 @@ class AsyncPaginatedWidgetExample extends StatelessWidget {
   const AsyncPaginatedWidgetExample({super.key});
 
   // you can chagne the state form here by edit data
-  PaginatedStateModel<String> _data() {
-    return PaginatedStateModel(
+  PaginatedListStateModel<String> _data() {
+    return PaginatedListStateModel(
       loading: false,
       error: InternetException('error'),
       dataModel: PaginatedDataModel(
