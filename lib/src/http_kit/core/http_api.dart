@@ -6,6 +6,8 @@ import 'package:http_interceptor/http_interceptor.dart';
 
 import '../http_kit.dart';
 
+typedef ExceptionMapper = HttpApiException? Function(Object exception);
+
 class HttpApi<R extends ResponseModelInterface> implements HttpApiInterface<R> {
   HttpApi({
     required this.httpClient,
@@ -13,6 +15,7 @@ class HttpApi<R extends ResponseModelInterface> implements HttpApiInterface<R> {
     Map<String, dynamic>? customParameters,
     Map<String, String>? customHeaders,
     this.responseParser,
+    this.exceptionMapper,
     HttpApiLogger? logger,
   })  : messages = MessagesFactory(config.locale).messages,
         headers = customHeaders ?? _buildHeaders(config),
@@ -35,6 +38,8 @@ class HttpApi<R extends ResponseModelInterface> implements HttpApiInterface<R> {
 
   @override
   final ResponseParser<R>? responseParser;
+
+  final ExceptionMapper? exceptionMapper;
 
   @override
   final HttpApiLogger logger;
@@ -398,7 +403,8 @@ class HttpApi<R extends ResponseModelInterface> implements HttpApiInterface<R> {
         return DataFormatException(messages.dataFormatMessage);
 
       default:
-        return UnknownException(messages.unKnownMessage);
+        return exceptionMapper?.call(e) ??
+            UnknownException(messages.unKnownMessage);
     }
   }
 

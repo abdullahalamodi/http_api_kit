@@ -166,7 +166,7 @@ The package includes comprehensive error handling with custom exceptions:
 
 - **ServerException** - Server-side errors (4xx, 5xx)
 - **InternetException** - Network connectivity issues
-- **DataFormatException** - JSON parsing errors
+- **DataFormatException** - JSON, response, or model data-format errors
 - **UnknownException** - Unexpected errors
 
 ## Contributing
